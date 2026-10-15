@@ -23,35 +23,19 @@ supabase = create_client(URL, KEY)
 co_code = st.selectbox("Company Select karo", [1, 2], index=0)
 
 
+
 @st.cache_data(ttl=60)
 def get_trial(co):
-    try:
-        gen_data = supabase.table("GEN").select("*").eq("co", co).execute().data
-        if not gen_data:
-            gen_data = supabase.table("gen").select("*").eq("co", co).execute().data
-    except Exception:
-        gen_data = supabase.table("gen").select("*").eq("co", co).execute().data
-
-    try:
-        genral_data = supabase.table("GENRAL").select("*").eq("co", co).execute().data
-        if not genral_data:
-            genral_data = supabase.table("genral").select("*").eq("co", co).execute().data
-    except Exception:
-        genral_data = supabase.table("genral").select("*").eq("co", co).execute().data
-
-    try:
-        chart_data = supabase.table("chart").select("*").eq("comp", co).execute().data
-        if not chart_data:
-            chart_data = supabase.table("chart").select("*").execute().data
-    except Exception:
-        chart_data = supabase.table("chart").select("*").execute().data
+    gen_data = supabase.table("GEN").select("*").eq("co", co).execute().data
+    genral_data = supabase.table("GENRAL").select("*").eq("co", co).execute().data
+    chart_data = supabase.table("chart").select("*").eq("comp", co).execute().data
 
     df_gen = pd.DataFrame(gen_data)
     df_genral = pd.DataFrame(genral_data)
     df_chart = pd.DataFrame(chart_data)
 
     if df_gen.empty:
-        return pd.DataFrame(), 0, 0, f"co={co} ka data nahi"
+        return pd.DataFrame(), 0, 0, "no data"
 
     id_col = next((c for c in df_chart.columns if c.lower() in ["chartid","id","code"]), df_chart.columns[0])
     name_col = next((c for c in df_chart.columns if "name" in c.lower() or "title" in c.lower()), df_chart.columns[1])
@@ -64,16 +48,10 @@ def get_trial(co):
         df_chart[bal_col] = pd.to_numeric(df_chart[bal_col], errors='coerce').fillna(0)
 
     merged = pd.merge(df_gen, df_genral, left_on=["modegen","vnogen"], right_on=["modeg","vnog2"], how="inner")
-
-    # --- DEBUG 682000 ---
     merged["drg2"] = pd.to_numeric(merged["drg2"], errors='coerce').fillna(0)
     merged["crg2"] = pd.to_numeric(merged["crg2"], errors='coerce').fillna(0)
-    m682 = merged[(merged["drg2"]==682000) | (merged["crg2"]==682000)]
-    if not m682.empty:
-        st.warning("682000 wali entry mil gayi")
-        st.dataframe(m682[["modegen","vnogen","cashgen","accg2","drg2","crg2"]])
-    # --- DEBUG END ---
 
+    # Normal double entry
     df1 = pd.DataFrame()
     df1["acc_code"] = merged["accg2"].astype(str)
     df1["debit"] = merged["drg2"]
@@ -85,11 +63,14 @@ def get_trial(co):
     df2["credit"] = merged["drg2"]
 
     all_entries = pd.concat([df1, df2], ignore_index=True)
+
+    # 682k wala masla - agar same acc_code hai to cancel nahi hona chahiye
+    # isliye pehle acc_code wise sum
     trial_tran = all_entries.groupby("acc_code")[["debit","credit"]].sum().reset_index()
 
+    # Opening - SAB ka jorna hai, chahe transaction ho ya na ho (comp=co se filter hai to Sales nahi ayega)
     if bal_col:
-        tran_acc = set(trial_tran["acc_code"].tolist())
-        df_open = df_chart[(df_chart[bal_col]!=0) & (~df_chart[id_col].astype(str).isin(tran_acc))].copy()
+        df_open = df_chart[df_chart[bal_col]!=0].copy()
         df_open["acc_code"] = df_open[id_col].astype(str)
         df_open["debit"] = df_open[bal_col].apply(lambda x: x if x>0 else 0)
         df_open["credit"] = df_open[bal_col].apply(lambda x: abs(x) if x<0 else 0)
@@ -107,6 +88,8 @@ def get_trial(co):
     trial = trial[(trial["DEBIT"] + trial["CREDIT"]) > 0]
 
     return trial, trial["DEBIT"].sum(), trial["CREDIT"].sum(), "ok"
+
+
 
 df_trial, t_dr, t_cr, msg = get_trial(co_code)
 
