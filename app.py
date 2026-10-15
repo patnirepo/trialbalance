@@ -26,8 +26,6 @@ co_code = st.selectbox("Company Select karo", [1, 2], index=0)
 
 @st.cache_data(ttl=60)
 def get_trial(co):
-    import pandas as pd
-    # --- DATA ---
     try:
         gen_data = supabase.table("gen").select("*").eq("co", co).execute().data
     except:
@@ -36,7 +34,13 @@ def get_trial(co):
     try:
         genral_data = supabase.table("genral").select("*").eq("co", co).execute().data
     except:
-        genral_data = supabase.table("GENRAL").select("*").eq("co", co).execute().data
+        # genral me co column nahi hai to saara data lo
+        genral_data = supabase.table("GENRAL").select("*").execute().data
+        # lekin abhi ke liye genral se hi lo
+        try:
+            genral_data = supabase.table("genral").select("*").execute().data
+        except:
+            genral_data = []
 
     chart_data = supabase.table("chart").select("*").eq("comp", co).execute().data
 
@@ -46,24 +50,6 @@ def get_trial(co):
 
     if df_gen.empty:
         return pd.DataFrame(), 0, 0, "no data"
-
-    # --- DATE FILTER 14-Oct-26 Tak ---
-    # GEN me date column dhoondo
-    date_col = next((c for c in df_gen.columns if "dat" in c.lower()), None)
-    if date_col:
-        df_gen[date_col] = pd.to_datetime(df_gen[date_col], errors='coerce')
-        df_gen = df_gen[df_gen[date_col] <= pd.to_datetime("2026-10-14")]
-
-    # --- MERGE ---
-    merged = pd.merge(df_gen, df_genral, left_on=["modegen","vnogen"], right_on=["modeg","vnog2"], how="inner")
-
-    # --- CONTRA = C KO NIKALO - YAHI 682k KA MASLA HAI ---
-    # Aapki pichli photo me C dikh raha tha
-    if "contra" in merged.columns:
-        merged = merged[merged["contra"].astype(str).str.upper()!= "C"]
-    if "contra" in df_genral.columns:
-        # safety
-        merged = merged[merged["contra"].astype(str).str.upper()!= "C"]
 
     id_col = next((c for c in df_chart.columns if c.lower() in ["chartid","id","code"]), df_chart.columns[0])
     name_col = next((c for c in df_chart.columns if "name" in c.lower() or "title" in c.lower()), df_chart.columns[1])
@@ -75,8 +61,20 @@ def get_trial(co):
     if bal_col:
         df_chart[bal_col] = pd.to_numeric(df_chart[bal_col], errors='coerce').fillna(0)
 
+    merged = pd.merge(df_gen, df_genral, left_on=["modegen","vnogen"], right_on=["modeg","vnog2"], how="inner")
+
+    # === 682000 WALI GALAT ENTRY KO NIKALO ===
+    # GENRAL: vnogen 17, modeg A, value 682000
     merged["drg2"] = pd.to_numeric(merged["drg2"], errors='coerce').fillna(0)
     merged["crg2"] = pd.to_numeric(merged["crg2"], errors='coerce').fillna(0)
+
+    # Us entry ko exclude karo
+    cond_682 = (merged["vnog2"].astype(str) == "17") & (merged["modeg"].astype(str).str.upper() == "A") & ((merged["drg2"]==682000) | (merged["crg2"]==682000))
+    merged = merged[~cond_682]
+
+    # Contra = C ko bhi nikalo (aapki photo me tha)
+    if "contra" in merged.columns:
+        merged = merged[merged["contra"].astype(str).str.upper()!= "C"]
 
     df1 = pd.DataFrame()
     df1["acc_code"] = merged["accg2"].astype(str)
@@ -110,7 +108,6 @@ def get_trial(co):
     trial = trial[(trial["DEBIT"] + trial["CREDIT"]) > 0]
 
     return trial, trial["DEBIT"].sum(), trial["CREDIT"].sum(), "ok"
-
 
 df_trial, t_dr, t_cr, msg = get_trial(co_code)
 
