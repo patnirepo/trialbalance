@@ -113,3 +113,34 @@ final_list.append({
 })
 
 st.dataframe(pd.DataFrame(final_list), use_container_width=True, hide_index=True)
+
+
+import streamlit.components.v1 as components
+
+# Print Button
+st.markdown("### Print Report")
+pdf_df = pd.DataFrame(final_list)
+
+# 1. Excel Download
+st.download_button(
+    "📥 Excel me Download karo",
+    pdf_df.to_csv(index=False).encode('utf-8'),
+    "trial_balance.csv",
+    "text/csv"
+)
+
+# 2. Browser se Direct Print
+if st.button("🖨️ Print Report"):
+    html = f"""
+    <html><head>
+    <style>
+    table {{width:100%; border-collapse:collapse; font-family: Arial;}}
+    th, td {{border:1px solid black; padding:6px; text-align:left;}}
+    th {{background:#eee;}}
+    </style>
+    </head><body onload="window.print()">
+    <h2>Trial Balance Report</h2>
+    {pdf_df.to_html(index=False)}
+    </body></html>
+    """
+    components.html(html, height=600, scrolling=True)
