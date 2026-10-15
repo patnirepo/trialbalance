@@ -26,16 +26,41 @@ co_code = st.selectbox("Company Select karo", [1, 2], index=0)
 
 @st.cache_data(ttl=60)
 def get_trial(co):
-    gen_data = supabase.table("GEN").select("*").eq("co", co).execute().data
-    genral_data = supabase.table("GENRAL").select("*").eq("co", co).execute().data
-    chart_data = supabase.table("chart").select("*").eq("comp", co).execute().data
+    gen_data = []
+    genral_data = []
+    chart_data = []
+
+    # GEN table - upper/lower dono try karo
+    try:
+        gen_data = supabase.table("GEN").select("*").eq("co", co).execute().data
+    except:
+        try:
+            gen_data = supabase.table("gen").select("*").eq("co", co).execute().data
+        except Exception as e:
+            return pd.DataFrame(), 0, 0, f"GEN error: {e}"
+
+    try:
+        genral_data = supabase.table("GENRAL").select("*").eq("co", co).execute().data
+    except:
+        try:
+            genral_data = supabase.table("genral").select("*").eq("co", co).execute().data
+        except Exception as e:
+            return pd.DataFrame(), 0, 0, f"GENRAL error: {e}"
+
+    try:
+        chart_data = supabase.table("chart").select("*").eq("comp", co).execute().data
+    except Exception as e:
+        try:
+            chart_data = supabase.table("chart").select("*").execute().data
+        except:
+            return pd.DataFrame(), 0, 0, f"chart error: {e}"
 
     df_gen = pd.DataFrame(gen_data)
     df_genral = pd.DataFrame(genral_data)
     df_chart = pd.DataFrame(chart_data)
 
     if df_gen.empty:
-        return pd.DataFrame(), 0, 0, "no data"
+        return pd.DataFrame(), 0, 0, f"co={co} ka koi data nahi"
 
     id_col = next((c for c in df_chart.columns if c.lower() in ["chartid","id","code"]), df_chart.columns[0])
     name_col = next((c for c in df_chart.columns if "name" in c.lower() or "title" in c.lower()), df_chart.columns[1])
@@ -51,7 +76,6 @@ def get_trial(co):
     merged["drg2"] = pd.to_numeric(merged["drg2"], errors='coerce').fillna(0)
     merged["crg2"] = pd.to_numeric(merged["crg2"], errors='coerce').fillna(0)
 
-    # Normal double entry
     df1 = pd.DataFrame()
     df1["acc_code"] = merged["accg2"].astype(str)
     df1["debit"] = merged["drg2"]
@@ -63,12 +87,8 @@ def get_trial(co):
     df2["credit"] = merged["drg2"]
 
     all_entries = pd.concat([df1, df2], ignore_index=True)
-
-    # 682k wala masla - agar same acc_code hai to cancel nahi hona chahiye
-    # isliye pehle acc_code wise sum
     trial_tran = all_entries.groupby("acc_code")[["debit","credit"]].sum().reset_index()
 
-    # Opening - SAB ka jorna hai, chahe transaction ho ya na ho (comp=co se filter hai to Sales nahi ayega)
     if bal_col:
         df_open = df_chart[df_chart[bal_col]!=0].copy()
         df_open["acc_code"] = df_open[id_col].astype(str)
@@ -88,7 +108,6 @@ def get_trial(co):
     trial = trial[(trial["DEBIT"] + trial["CREDIT"]) > 0]
 
     return trial, trial["DEBIT"].sum(), trial["CREDIT"].sum(), "ok"
-
 
 
 df_trial, t_dr, t_cr, msg = get_trial(co_code)
