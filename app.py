@@ -48,11 +48,12 @@ def get_trial(co):
     type_col = next((c for c in df_chart.columns if "type" in c.lower()), None)
     bal_col = next((c for c in df_chart.columns if "bal" in c.lower()), None)
 
-    # CHART KO DUPLICATE SE SAAF KARO - same id 2 bar hai to 1 hi rakho
+    
+     # CHART KO DUPLICATE SE SAAF KARO
     df_chart[id_col] = df_chart[id_col].astype(str)
     df_chart = df_chart.drop_duplicates(subset=[id_col], keep='first')
 
-    # Transaction
+    # Transaction ka trial
     merged = pd.merge(df_gen, df_genral, left_on=["modegen","vnogen"], right_on=["modeg","vnog2"], how="inner")
 
     df1 = pd.DataFrame()
@@ -68,25 +69,33 @@ def get_trial(co):
     all_entries = pd.concat([df1, df2], ignore_index=True)
     trial = all_entries.groupby("acc_code")[["debit","credit"]].sum().reset_index()
 
-    # SIRF INNER JOIN - sirf usi company ke khate jo transaction me hain
-    trial = pd.merge(trial, df_chart, left_on="acc_code", right_on=id_col, how="left")
+    # --- NAYA LOGIC: Opening wale acc bhi lao ---
+    if bal_col and bal_col in df_chart.columns:
+        df_chart[bal_col] = pd.to_numeric(df_chart[bal_col], errors='coerce').fillna(0)
+        # Sirf wo chart acc jin ka opening hai
+        df_open = df_chart[df_chart[bal_col] != 0].copy()
+        df_open["acc_code"] = df_open[id_col].astype(str)
+        df_open["debit"] = df_open[bal_col].apply(lambda x: x if x>0 else 0)
+        df_open["credit"] = df_open[bal_col].apply(lambda x: abs(x) if x<0 else 0)
+        df_open = df_open[["acc_code","debit","credit"]]
+        
+        # Transaction + Opening ko jor do
+        trial = pd.concat([trial, df_open], ignore_index=True)
+        trial = trial.groupby("acc_code")[["debit","credit"]].sum().reset_index()
 
-    # Opening add
-    if bal_col and bal_col in trial.columns:
-        trial[bal_col] = pd.to_numeric(trial[bal_col], errors='coerce').fillna(0)
-        trial["debit"] += trial[bal_col].apply(lambda x: x if x>0 else 0)
-        trial["credit"] += trial[bal_col].apply(lambda x: abs(x) if x<0 else 0)
+    # Ab chart se name, type lao - LEFT JOIN taake Sale/Sales mix na ho
+    trial = pd.merge(trial, df_chart, left_on="acc_code", right_on=id_col, how="left")
 
     trial["DEBIT"] = (trial["debit"] - trial["credit"]).apply(lambda x: x if x>0 else 0)
     trial["CREDIT"] = (trial["credit"] - trial["debit"]).apply(lambda x: x if x>0 else 0)
     trial["DISPLAY_NAME"] = trial[name_col]
     trial["DISPLAY_TYPE"] = trial[type_col] if type_col else "OTHER"
 
-    # Zero wale hata do
-    trial = trial[(trial["DEBIT"]+trial["CREDIT"])>0]
+    trial = trial[(trial["DEBIT"] + trial["CREDIT"]) > 0]
 
     return trial, trial["DEBIT"].sum(), trial["CREDIT"].sum(), "ok"
-
+    
+  
 
 df_trial, t_dr, t_cr, msg = get_trial(co_code)
 
