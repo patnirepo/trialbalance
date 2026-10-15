@@ -83,7 +83,7 @@ def get_trial(co):
     trial["DISPLAY_TYPE"] = trial[type_col] if type_col else "OTHER"
 
     # Zero wale hata do
-    trial = trial[(trial["DEBIT"]+trial["CREDIT"])>0
+    trial = trial[(trial["DEBIT"]+trial["CREDIT"])>0]
 
     return trial, trial["DEBIT"].sum(), trial["CREDIT"].sum(), "ok"
 
