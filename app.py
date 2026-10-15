@@ -122,44 +122,50 @@ if msg != "ok":
     st.error(msg)
 else:
     st.write(f"### TRIAL BALANCE - Co {co_code}")
-    c1,c2,c3 = st.columns(3)
-    c1.metric("Total Debit", f"{t_dr:,.0f}")
-    c2.metric("Total Credit", f"{t_cr:,.0f}")
-    c3.metric("Diff", f"{t_dr-t_cr:,.0f}")
 
-    # ---- Group By Type ----
-    # Type ke hisab se sort karo
-    df_show = df_trial.sort_values("DISPLAY_TYPE")
-
-    # Har group ko alag dikhana jaise aapki photo me OFFICE EXPENSES, PARTIES etc tha
-    for g_type, group_df in df_show.groupby("DISPLAY_TYPE"):
-        if not g_type or str(g_type).lower() == "nan":
+    # Ek hi table banao
+    df_show = df_trial.sort_values(["DISPLAY_TYPE","acc_code"])
+    
+    final_list = []
+    
+    # Har type ko group karo
+    for g_type, group_df in df_show.groupby("DISPLAY_TYPE", sort=True):
+        if not g_type or str(g_type).lower() in ["nan","none",""]:
             g_type = "OTHER"
-        st.markdown(f"#### {g_type}")
-        # Group ke andar code ke hisab se sort
-        st.dataframe(
-            group_df[["acc_code","DISPLAY_NAME","DEBIT","CREDIT"]].sort_values("acc_code"),
-            use_container_width=True,
-            hide_index=True
-        )
+        
+        # 1. Group Title ki line (jaise STOCK, EXPENSE)
+        final_list.append({
+            "acc_code": "",
+            "TITLE": f"**{g_type}**",
+            "DEBIT": "",
+            "CREDIT": ""
+        })
+        
+        # 2. Us group ke saare khate
+        for _, row in group_df.sort_values("acc_code").iterrows():
+            final_list.append({
+                "acc_code": row["acc_code"],
+                "TITLE": row["DISPLAY_NAME"],
+                "DEBIT": row["DEBIT"] if row["DEBIT"] != 0 else "",
+                "CREDIT": row["CREDIT"] if row["CREDIT"] != 0 else ""
+            })
 
-    # ---- Last Line pe Total ----
-    st.markdown("---")
-    total_row = pd.DataFrame([{
+    # 3. Bilkul last me Grand Total - sirf ek baar
+    final_list.append({
         "acc_code": "",
-        "DISPLAY_NAME": "TOTAL",
+        "TITLE": "GRAND TOTAL",
         "DEBIT": t_dr,
         "CREDIT": t_cr
-    }])
-    
-    # Dono ko jor ke final table bhi
-    final_with_total = pd.concat([df_show[["acc_code","DISPLAY_NAME","DEBIT","CREDIT"]], total_row], ignore_index=True)
-    
-    st.markdown("### Final Total (Debit ke neeche, Credit ke neeche)")
+    })
+
+    df_final = pd.DataFrame(final_list)
+
+    # Table dikhao - heading sirf ek baar upar aayegi
     st.dataframe(
-        final_with_total.style.format({"DEBIT": "{:,.0f}", "CREDIT": "{:,.0f}"}),
+        df_final,
         use_container_width=True,
         hide_index=True
     )
 
-
+    # Agar bracket me credit chahiye to ye style use karo (optional)
+    # st.write(f"Total Debit: {t_dr:,.0f} = Total Credit: {t_cr:,.0f}")
