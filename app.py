@@ -107,12 +107,11 @@ def get_trial(co):
 
 
 df_trial, t_dr, t_cr, msg = get_trial(co_code)
-st.caption(msg) # is se contra= kitni hain nazar ayega
-# df_trial, t_dr, t_cr, msg = get_trial(co_code)
 
-if msg!= "ok":
+if "ERROR" in msg:
     st.error(msg)
 else:
+    # st.caption(msg) -> ye line hata do ya comment karo
     df_show = df_trial.sort_values(["DISPLAY_TYPE","DISPLAY_NAME"])
 
     final_list = []
@@ -121,7 +120,7 @@ else:
         g_type = g_type if g_type else "OTHER"
         for i, (_, row) in enumerate(group_df.sort_values("DISPLAY_NAME").iterrows()):
             final_list.append({
-                "GROUP": g_type if g_type!= last_group else "", # Sirf pehli bar group naam
+                "GROUP": g_type if g_type != last_group else "",
                 "ACCOUNT TITLE": row["DISPLAY_NAME"],
                 "DEBIT": f"{row['DEBIT']:,.0f}" if row['DEBIT']>0 else "",
                 "CREDIT": f"{row['CREDIT']:,.0f}" if row['CREDIT']>0 else ""
