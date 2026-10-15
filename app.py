@@ -20,8 +20,9 @@ st.sidebar.success("Logged In ✅")
 
 # --- SUPABASE CONNECT ---
 try:
-    URL = st.secrets["https://lpojxxjtworbuwtuphsl.supabase.co"]
-    KEY = st.secrets["eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxwb2p4eGp0d29yYnV3dHVwaHNsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIyODQxMDgsImV4cCI6MjA5Nzg2MDEwOH0.i_VvEshWkYjBrzsQewDUZ0c_EseFP3x7xmuAWF7Ri2I"]
+    URL = st.secrets["SUPABASE_URL"]
+    KEY = st.secrets["SUPABASE_KEY"]
+    APP_PW = st.secrets["APP_PASSWORD"]
 except Exception:
     st.error("Secrets me SUPABASE_URL aur SUPABASE_KEY dalna hai")
     st.code('''
