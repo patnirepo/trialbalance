@@ -27,6 +27,7 @@ co_code = st.selectbox("Company Select karo", [1, 2], index=0)
 
 @st.cache_data(ttl=60)
 def get_trial(co):
+    import pandas as pd
     gen_data = supabase.table("gen").select("*").eq("co", co).execute().data
     genral_data = supabase.table("genral").select("*").execute().data
     chart_data = supabase.table("chart").select("*").eq("comp", co).execute().data
@@ -35,6 +36,7 @@ def get_trial(co):
     df_genral = pd.DataFrame(genral_data)
     df_chart = pd.DataFrame(chart_data)
 
+    # --- Fix codes 46 & 49 ---
     df_gen["modegen"] = df_gen["modegen"].astype(str).str.strip().str.upper()
     df_gen["vnogen"] = df_gen["vnogen"].astype(str).str.strip()
     df_gen["cashgen"] = df_gen["cashgen"].astype(str).str.strip()
@@ -44,6 +46,7 @@ def get_trial(co):
 
     id_col = next((c for c in df_chart.columns if c.lower() in ["chartid","id","code"]), df_chart.columns[0])
     name_col = next((c for c in df_chart.columns if "name" in c.lower() or "title" in c.lower()), df_chart.columns[1])
+    type_col = next((c for c in df_chart.columns if "type" in c.lower()), None)
     bal_col = next((c for c in df_chart.columns if "bal" in c.lower()), None)
 
     df_chart[id_col] = df_chart[id_col].astype(str)
@@ -53,10 +56,10 @@ def get_trial(co):
 
     merged = pd.merge(df_gen, df_genral, left_on=["modegen","vnogen"], right_on=["modeg","vnog2"], how="inner")
 
-    # Date filter HATA diya - kyunki VB bhi Till Date 14-Oct-26 tak saara le raha hai, lekin gen me date format alag hai
     merged["drg2"] = pd.to_numeric(merged["drg2"], errors='coerce').fillna(0)
     merged["crg2"] = pd.to_numeric(merged["crg2"], errors='coerce').fillna(0)
 
+    # --- Contra ko include rakho - 49 aur 46 ka aapas ka lena dena ---
     df1 = pd.DataFrame()
     df1["acc_code"] = merged["accg2"]
     df1["debit"] = merged["drg2"]
@@ -84,11 +87,16 @@ def get_trial(co):
     trial = pd.merge(trial, df_chart, left_on="acc_code", right_on=id_col, how="left")
     trial["DEBIT"] = (trial["debit"] - trial["credit"]).apply(lambda x: x if x>0 else 0)
     trial["CREDIT"] = (trial["credit"] - trial["debit"]).apply(lambda x: x if x>0 else 0)
-    trial["DISPLAY_NAME"] = trial[name_col]
+
+    # --- FIX for KeyError - DISPLAY columns hamesha banao ---
+    trial["DISPLAY_NAME"] = trial[name_col] if name_col in trial.columns else trial["acc_code"]
+    if type_col and type_col in trial.columns:
+        trial["DISPLAY_TYPE"] = trial[type_col].fillna("OTHER")
+    else:
+        trial["DISPLAY_TYPE"] = "OTHER"
+
     trial = trial[(trial["DEBIT"] + trial["CREDIT"]) > 0]
-
     return trial, trial["DEBIT"].sum(), trial["CREDIT"].sum(), "ok"
-
 
 
 df_trial, t_dr, t_cr, msg = get_trial(co_code)
@@ -97,8 +105,17 @@ if "ERROR" in msg:
     st.error(msg)
 else:
     # st.caption(msg) -> ye line hata do ya comment karo
-    df_show = df_trial.sort_values(["DISPLAY_TYPE","DISPLAY_NAME"])
+ # Purana:
+# df_show = df_trial.sort_values(["DISPLAY_TYPE","DISPLAY_NAME"])
 
+# Naya (error-proof):
+if "DISPLAY_TYPE" in df_trial.columns and "DISPLAY_NAME" in df_trial.columns:
+    df_show = df_trial.sort_values(["DISPLAY_TYPE","DISPLAY_NAME"])
+else:
+    df_show = df_trial.sort_values(["DISPLAY_NAME"])
+
+
+    
     final_list = []
     last_group = None
     for g_type, group_df in df_show.groupby("DISPLAY_TYPE", sort=True):
