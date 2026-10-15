@@ -24,6 +24,7 @@ co_code = st.selectbox("Company Select karo", [1, 2], index=0)
 
 
 
+
 @st.cache_data(ttl=60)
 def get_trial(co):
     try:
@@ -32,15 +33,10 @@ def get_trial(co):
         gen_data = supabase.table("GEN").select("*").eq("co", co).execute().data
 
     try:
-        genral_data = supabase.table("genral").select("*").eq("co", co).execute().data
+        genral_data = supabase.table("genral").select("*").execute().data
+        # genral me co column nahi hota, isliye gen se filter hoga
     except:
-        # genral me co column nahi hai to saara data lo
         genral_data = supabase.table("GENRAL").select("*").execute().data
-        # lekin abhi ke liye genral se hi lo
-        try:
-            genral_data = supabase.table("genral").select("*").execute().data
-        except:
-            genral_data = []
 
     chart_data = supabase.table("chart").select("*").eq("comp", co).execute().data
 
@@ -48,7 +44,7 @@ def get_trial(co):
     df_genral = pd.DataFrame(genral_data)
     df_chart = pd.DataFrame(chart_data)
 
-    if df_gen.empty:
+    if df_gen.empty or df_genral.empty:
         return pd.DataFrame(), 0, 0, "no data"
 
     id_col = next((c for c in df_chart.columns if c.lower() in ["chartid","id","code"]), df_chart.columns[0])
@@ -63,18 +59,19 @@ def get_trial(co):
 
     merged = pd.merge(df_gen, df_genral, left_on=["modegen","vnogen"], right_on=["modeg","vnog2"], how="inner")
 
-    # === 682000 WALI GALAT ENTRY KO NIKALO ===
-    # GENRAL: vnogen 17, modeg A, value 682000
+    # VB wala date filter 14-Oct-26 tak
+    date_col = next((c for c in df_gen.columns if "dat" in c.lower()), None)
+    if date_col:
+        merged[date_col] = pd.to_datetime(merged[date_col], errors='coerce')
+        merged = merged[merged[date_col] <= pd.to_datetime("2026-10-14")]
+
     merged["drg2"] = pd.to_numeric(merged["drg2"], errors='coerce').fillna(0)
     merged["crg2"] = pd.to_numeric(merged["crg2"], errors='coerce').fillna(0)
 
-    # Us entry ko exclude karo
-    cond_682 = (merged["vnog2"].astype(str) == "17") & (merged["modeg"].astype(str).str.upper() == "A") & ((merged["drg2"]==682000) | (merged["crg2"]==682000))
-    merged = merged[~cond_682]
-
-    # Contra = C ko bhi nikalo (aapki photo me tha)
-    if "contra" in merged.columns:
-        merged = merged[merged["contra"].astype(str).str.upper()!= "C"]
+    # Contra C ko VB me alag handle hota hai - lekin abhi rehne dete hain kyunki aapki entry sahi hai
+    # Agar contra ko exclude karna ho to ye line uncomment karo:
+    # if "contra" in merged.columns:
+    # merged = merged[merged["contra"].astype(str).str.upper()!= "C"]
 
     df1 = pd.DataFrame()
     df1["acc_code"] = merged["accg2"].astype(str)
@@ -89,8 +86,12 @@ def get_trial(co):
     all_entries = pd.concat([df1, df2], ignore_index=True)
     trial_tran = all_entries.groupby("acc_code")[["debit","credit"]].sum().reset_index()
 
+    # === VB Jaisa Logic: Opening sirf un accounts ka jinka transaction NAHI hai ===
+    tran_acc = set(trial_tran["acc_code"].astype(str).tolist())
+
     if bal_col:
-        df_open = df_chart[df_chart[bal_col]!=0].copy()
+        df_open = df_chart[~df_chart[id_col].astype(str).isin(tran_acc)].copy()
+        df_open = df_open[df_open[bal_col]!=0]
         df_open["acc_code"] = df_open[id_col].astype(str)
         df_open["debit"] = df_open[bal_col].apply(lambda x: x if x>0 else 0)
         df_open["credit"] = df_open[bal_col].apply(lambda x: abs(x) if x<0 else 0)
@@ -108,6 +109,9 @@ def get_trial(co):
     trial = trial[(trial["DEBIT"] + trial["CREDIT"]) > 0]
 
     return trial, trial["DEBIT"].sum(), trial["CREDIT"].sum(), "ok"
+
+
+
 
 df_trial, t_dr, t_cr, msg = get_trial(co_code)
 
