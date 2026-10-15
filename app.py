@@ -26,46 +26,92 @@ co_code = st.selectbox("Company Select karo", [1, 2], index=0)
 
 @st.cache_data(ttl=60)
 def get_trial(co):
-    import pandas as pd
-    gen_data = supabase.table("gen").select("*").eq("co", co).execute().data
-    genral_data = supabase.table("genral").select("*").eq("co", co).execute().data
-    chart_data = supabase.table("chart").select("*").eq("comp", co).execute().data
+    try:
+        gen_data = supabase.table("gen").select("*").eq("co", co).execute().data
+    except:
+        gen_data = supabase.table("GEN").select("*").eq("co", co).execute().data
+
+    try:
+        genral_data = supabase.table("genral").select("*").eq("co", co).execute().data
+    except:
+        genral_data = supabase.table("GENRAL").select("*").eq("co", co).execute().data
+
+    try:
+        chart_data = supabase.table("chart").select("*").eq("comp", co).execute().data
+    except:
+        chart_data = supabase.table("chart").select("*").execute().data
 
     df_gen = pd.DataFrame(gen_data)
     df_genral = pd.DataFrame(genral_data)
     df_chart = pd.DataFrame(chart_data)
 
+    if df_gen.empty:
+        return pd.DataFrame(), 0, 0, "no data"
+
     id_col = next((c for c in df_chart.columns if c.lower() in ["chartid","id","code"]), df_chart.columns[0])
     name_col = next((c for c in df_chart.columns if "name" in c.lower() or "title" in c.lower()), df_chart.columns[1])
+    type_col = next((c for c in df_chart.columns if "type" in c.lower()), None)
     bal_col = next((c for c in df_chart.columns if "bal" in c.lower()), None)
 
     df_chart[id_col] = df_chart[id_col].astype(str)
-
-    # Cash aur Bin ka Chart ID nikalo
-    cash_ids = df_chart[df_chart[name_col].str.contains("Cash in hand", case=False, na=False)][id_col].tolist()
-    bin_ids = df_chart[df_chart[name_col].str.contains("Bin", case=False, na=False)][id_col].tolist()
-
-    st.write(f"Cash IDs: {cash_ids} | Bin IDs: {bin_ids}")
-
-    df_genral["accg2"] = df_genral["accg2"].astype(str)
-    df_gen["cashgen"] = df_gen["cashgen"].astype(str)
+    df_chart = df_chart.drop_duplicates(subset=[id_col], keep='first')
+    if bal_col:
+        df_chart[bal_col] = pd.to_numeric(df_chart[bal_col], errors='coerce').fillna(0)
 
     merged = pd.merge(df_gen, df_genral, left_on=["modegen","vnogen"], right_on=["modeg","vnog2"], how="inner")
 
-    # Sirf Cash aur Bin se related entries
-    target_ids = cash_ids + bin_ids
-    m = merged[(merged["accg2"].isin(target_ids)) | (merged["cashgen"].isin(target_ids))]
+    # === YAHAN SE FARQ KHATAM HOTA HAI - CONTRA KO EXCLUDE ===
+    # Aapki photo me contra = C dikh raha hai, isko nikal do
+    contra_col = None
+    for c in ["contra","cont","con"]:
+        if c in merged.columns:
+            contra_col = c
+            break
+        if c in df_genral.columns and c not in merged.columns:
+            # agar merge me naam badal gaya ho
+            pass
 
-    # 682k aur 519k wali entry dhoondo
-    m["drg2"] = pd.to_numeric(m["drg2"], errors='coerce').fillna(0)
-    m["crg2"] = pd.to_numeric(m["crg2"], errors='coerce').fillna(0)
+    # GENRAL me contra column check karo
+    if "contra" in df_genral.columns:
+        merged = merged[merged["contra"].astype(str).str.upper()!= "C"]
+    elif "contra" in merged.columns:
+        merged = merged[merged["contra"].astype(str).str.upper()!= "C"]
 
-    m_target = m[(m["drg2"].isin([682000, 519830])) | (m["crg2"].isin([682000, 519830])) | (m["accg2"].isin(target_ids)) | (m["cashgen"].isin(target_ids))]
+    merged["drg2"] = pd.to_numeric(merged["drg2"], errors='coerce').fillna(0)
+    merged["crg2"] = pd.to_numeric(merged["crg2"], errors='coerce').fillna(0)
 
-    st.dataframe(m_target[["modegen","vnogen","cashgen","accg2","drg2","crg2","contra"]].head(20))
+    df1 = pd.DataFrame()
+    df1["acc_code"] = merged["accg2"].astype(str)
+    df1["debit"] = merged["drg2"]
+    df1["credit"] = merged["crg2"]
 
-    return pd.DataFrame(), 0, 0, "debug mode"
+    df2 = pd.DataFrame()
+    df2["acc_code"] = merged["cashgen"].astype(str)
+    df2["debit"] = merged["crg2"]
+    df2["credit"] = merged["drg2"]
 
+    all_entries = pd.concat([df1, df2], ignore_index=True)
+    trial_tran = all_entries.groupby("acc_code")[["debit","credit"]].sum().reset_index()
+
+    if bal_col:
+        df_open = df_chart[df_chart[bal_col]!=0].copy()
+        df_open["acc_code"] = df_open[id_col].astype(str)
+        df_open["debit"] = df_open[bal_col].apply(lambda x: x if x>0 else 0)
+        df_open["credit"] = df_open[bal_col].apply(lambda x: abs(x) if x<0 else 0)
+        df_open = df_open[["acc_code","debit","credit"]]
+        trial = pd.concat([trial_tran, df_open], ignore_index=True)
+        trial = trial.groupby("acc_code")[["debit","credit"]].sum().reset_index()
+    else:
+        trial = trial_tran
+
+    trial = pd.merge(trial, df_chart, left_on="acc_code", right_on=id_col, how="left")
+    trial["DEBIT"] = (trial["debit"] - trial["credit"]).apply(lambda x: x if x>0 else 0)
+    trial["CREDIT"] = (trial["credit"] - trial["debit"]).apply(lambda x: x if x>0 else 0)
+    trial["DISPLAY_NAME"] = trial[name_col]
+    trial["DISPLAY_TYPE"] = trial[type_col] if type_col else "OTHER"
+    trial = trial[(trial["DEBIT"] + trial["CREDIT"]) > 0]
+
+    return trial, trial["DEBIT"].sum(), trial["CREDIT"].sum(), "ok"
 
 
 
