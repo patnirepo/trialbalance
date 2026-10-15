@@ -35,6 +35,9 @@ def get_trial(co):
     df_genral = pd.DataFrame(genral_data)
     df_chart = pd.DataFrame(chart_data)
 
+    if df_gen.empty:
+        return pd.DataFrame(), 0, 0, "no data"
+
     id_col = next((c for c in df_chart.columns if c.lower() in ["chartid","id","code"]), df_chart.columns[0])
     name_col = next((c for c in df_chart.columns if "name" in c.lower() or "title" in c.lower()), df_chart.columns[1])
     type_col = next((c for c in df_chart.columns if "type" in c.lower()), None)
@@ -45,12 +48,21 @@ def get_trial(co):
     if bal_col:
         df_chart[bal_col] = pd.to_numeric(df_chart[bal_col], errors='coerce').fillna(0)
 
+    # Merge - contra ko bilkul filter nahi karna
     merged = pd.merge(df_gen, df_genral, left_on=["modegen","vnogen"], right_on=["modeg","vnog2"], how="inner")
+
+    # 14-Oct-26 tak ka filter - VB me Till Date hai
+    date_col = next((c for c in df_gen.columns if "dat" in c.lower()), None)
+    if date_col and date_col in merged.columns:
+        merged[date_col] = pd.to_datetime(merged[date_col], errors='coerce')
+        merged = merged[merged[date_col] <= pd.to_datetime("2026-10-14")]
+
     merged["drg2"] = pd.to_numeric(merged["drg2"], errors='coerce').fillna(0)
     merged["crg2"] = pd.to_numeric(merged["crg2"], errors='coerce').fillna(0)
 
-    # 682000 wali entry ko MAT hatao - rehne do
-
+    # === SAHI LOGIC - Double Entry ===
+    # accg2 : debit = drg2, credit = crg2
+    # cashgen : debit = crg2, credit = drg2 (ulti entry)
     df1 = pd.DataFrame()
     df1["acc_code"] = merged["accg2"].astype(str)
     df1["debit"] = merged["drg2"]
@@ -64,6 +76,7 @@ def get_trial(co):
     all_entries = pd.concat([df1, df2], ignore_index=True)
     trial_tran = all_entries.groupby("acc_code")[["debit","credit"]].sum().reset_index()
 
+    # Opening sab ka add karo - VB bhi aisa hi karta hai, isliye Grand Total balanced rehta hai
     if bal_col:
         df_open = df_chart[df_chart[bal_col]!=0].copy()
         df_open["acc_code"] = df_open[id_col].astype(str)
@@ -83,7 +96,6 @@ def get_trial(co):
     trial = trial[(trial["DEBIT"] + trial["CREDIT"]) > 0]
 
     return trial, trial["DEBIT"].sum(), trial["CREDIT"].sum(), "ok"
-
 
 
 df_trial, t_dr, t_cr, msg = get_trial(co_code)
