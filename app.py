@@ -26,83 +26,74 @@ co_code = st.selectbox("Company Select karo", [1, 2], index=0)
 @st.cache_data(ttl=60)
 def get_trial(co):
     try:
-        try:
-            gen_data = supabase.table("GEN").select("*").eq("co", co).execute().data
-        except:
-            gen_data = supabase.table("gen").select("*").eq("co", co).execute().data
-        try:
-            genral_data = supabase.table("GENRAL").select("*").eq("co", co).execute().data
-        except:
-            genral_data = supabase.table("genral").select("*").eq("co", co).execute().data
-        try:
-            chart_data = supabase.table("chart").select("*").eq("comp", co).execute().data
-        except:
-            chart_data = supabase.table("chart").select("*").eq("Comp", co).execute().data
+        gen_data = supabase.table("GEN").select("*").eq("co", co).execute().data
+    except:
+        gen_data = supabase.table("gen").select("*").eq("co", co).execute().data
+    try:
+        genral_data = supabase.table("GENRAL").select("*").eq("co", co).execute().data
+    except:
+        genral_data = supabase.table("genral").select("*").eq("co", co).execute().data
+    try:
+        chart_data = supabase.table("chart").select("*").eq("comp", co).execute().data
+    except:
+        chart_data = supabase.table("chart").select("*").eq("Comp", co).execute().data
 
-        df_gen = pd.DataFrame(gen_data)
-        df_genral = pd.DataFrame(genral_data)
-        df_chart = pd.DataFrame(chart_data)
+    df_gen = pd.DataFrame(gen_data)
+    df_genral = pd.DataFrame(genral_data)
+    df_chart = pd.DataFrame(chart_data)
 
-        id_col = next((c for c in df_chart.columns if c.lower() in ["chartid","id","code"]), df_chart.columns[0])
-        name_col = next((c for c in df_chart.columns if "name" in c.lower() or "title" in c.lower()), df_chart.columns[1])
-        type_col = next((c for c in df_chart.columns if "type" in c.lower() or "charttype" in c.lower()), None)
-        bal_col = next((c for c in df_chart.columns if "bal" in c.lower()), None)
-        contra_col = next((c for c in df_genral.columns if "contra" in c.lower()), None)
+    id_col = next((c for c in df_chart.columns if c.lower() in ["chartid","id","code"]), df_chart.columns[0])
+    name_col = next((c for c in df_chart.columns if "name" in c.lower() or "title" in c.lower()), df_chart.columns[1])
+    type_col = next((c for c in df_chart.columns if "type" in c.lower()), None)
+    bal_col = next((c for c in df_chart.columns if "bal" in c.lower()), None)
+    contra_col = next((c for c in df_genral.columns if "contra" in c.lower()), None)
 
-        df_chart[id_col] = df_chart[id_col].astype(str)
-        df_chart = df_chart.drop_duplicates(subset=[id_col], keep='first')
-        if bal_col:
-            df_chart[bal_col] = pd.to_numeric(df_chart[bal_col], errors='coerce').fillna(0)
+    df_chart[id_col] = df_chart[id_col].astype(str)
+    df_chart = df_chart.drop_duplicates(subset=[id_col], keep='first')
+    if bal_col:
+        df_chart[bal_col] = pd.to_numeric(df_chart[bal_col], errors='coerce').fillna(0)
 
-        merged = pd.merge(df_gen, df_genral, left_on=["modegen","vnogen"], right_on=["modeg","vnog2"], how="inner")
+    merged = pd.merge(df_gen, df_genral, left_on=["modegen","vnogen"], right_on=["modeg","vnog2"], how="inner")
 
-        # CONTRA COUNT - dekhne ke liye
-        contra_count = 0
-        if contra_col and contra_col in merged.columns:
-            merged[contra_col] = merged[contra_col].astype(str).str.upper().str.strip()
-            contra_count = len(merged[merged[contra_col] == 'C'])
+    # Contra wali 9 entries
+    if contra_col:
+        merged[contra_col] = merged[contra_col].astype(str).str.upper()
 
-        # Normal double entry - contra ke liye bhi same logic
-        # accg2 = ek CASH/BANK, cashgen = doosra CASH/BANK
-        df1 = pd.DataFrame()
-        df1["acc_code"] = merged["accg2"].astype(str)
-        df1["debit"] = pd.to_numeric(merged["drg2"], errors='coerce').fillna(0)
-        df1["credit"] = pd.to_numeric(merged["crg2"], errors='coerce').fillna(0)
+    # 1. GEN.cashgen se -> ye har entry me aayega (9 contra wali bhi)
+    df_cash = pd.DataFrame()
+    df_cash["acc_code"] = merged["cashgen"].astype(str)
+    df_cash["debit"] = pd.to_numeric(merged["crg2"], errors='coerce').fillna(0)
+    df_cash["credit"] = pd.to_numeric(merged["drg2"], errors='coerce').fillna(0)
 
-        df2 = pd.DataFrame()
-        df2["acc_code"] = merged["cashgen"].astype(str)
-        df2["debit"] = pd.to_numeric(merged["crg2"], errors='coerce').fillna(0)
-        df2["credit"] = pd.to_numeric(merged["drg2"], errors='coerce').fillna(0)
+    # 2. GENRAL.accg2 se -> ye contra ka reflection hai (yehi 9 extra CASH me)
+    df_other = pd.DataFrame()
+    df_other["acc_code"] = merged["accg2"].astype(str)
+    df_other["debit"] = pd.to_numeric(merged["drg2"], errors='coerce').fillna(0)
+    df_other["credit"] = pd.to_numeric(merged["crg2"], errors='coerce').fillna(0)
 
-        all_entries = pd.concat([df1, df2], ignore_index=True)
-        trial_tran = all_entries.groupby("acc_code")[["debit","credit"]].sum().reset_index()
+    all_entries = pd.concat([df_cash, df_other], ignore_index=True)
+    trial_tran = all_entries.groupby("acc_code")[["debit","credit"]].sum().reset_index()
 
-        # Opening add - sirf isi comp ke
-        if bal_col:
-            df_open = df_chart[df_chart[bal_col]!= 0].copy()
-            df_open["acc_code"] = df_open[id_col].astype(str)
-            df_open["debit"] = df_open[bal_col].apply(lambda x: x if x>0 else 0)
-            df_open["credit"] = df_open[bal_col].apply(lambda x: abs(x) if x<0 else 0)
-            df_open = df_open[["acc_code","debit","credit"]]
-            trial = pd.concat([trial_tran, df_open], ignore_index=True)
-            trial = trial.groupby("acc_code")[["debit","credit"]].sum().reset_index()
-        else:
-            trial = trial_tran
+    # Opening - sirf isi comp ke
+    if bal_col:
+        df_open = df_chart[df_chart[bal_col]!=0].copy()
+        df_open["acc_code"] = df_open[id_col].astype(str)
+        df_open["debit"] = df_open[bal_col].apply(lambda x: x if x>0 else 0)
+        df_open["credit"] = df_open[bal_col].apply(lambda x: abs(x) if x<0 else 0)
+        df_open = df_open[["acc_code","debit","credit"]]
+        trial = pd.concat([trial_tran, df_open], ignore_index=True)
+        trial = trial.groupby("acc_code")[["debit","credit"]].sum().reset_index()
+    else:
+        trial = trial_tran
 
-        trial = pd.merge(trial, df_chart, left_on="acc_code", right_on=id_col, how="left")
-        trial["DEBIT"] = (trial["debit"] - trial["credit"]).apply(lambda x: x if x>0 else 0)
-        trial["CREDIT"] = (trial["credit"] - trial["debit"]).apply(lambda x: x if x>0 else 0)
-        trial["DISPLAY_NAME"] = trial[name_col]
-        trial["DISPLAY_TYPE"] = trial[type_col] if type_col else "OTHER"
-        trial = trial[(trial["DEBIT"] + trial["CREDIT"]) > 0]
+    trial = pd.merge(trial, df_chart, left_on="acc_code", right_on=id_col, how="left")
+    trial["DEBIT"] = (trial["debit"] - trial["credit"]).apply(lambda x: x if x>0 else 0)
+    trial["CREDIT"] = (trial["credit"] - trial["debit"]).apply(lambda x: x if x>0 else 0)
+    trial["DISPLAY_NAME"] = trial[name_col]
+    trial["DISPLAY_TYPE"] = trial[type_col] if type_col else "OTHER"
+    trial = trial[(trial["DEBIT"] + trial["CREDIT"]) > 0]
 
-        # Info ke liye
-        print(f"Co {co} - Contra entries: {contra_count} -> {contra_count*2} records barhe")
-
-        return trial, trial["DEBIT"].sum(), trial["CREDIT"].sum(), f"ok | contra={contra_count}"
-
-    except Exception as e:
-        return pd.DataFrame(), 0, 0, f"ERROR: {str(e)}"
+    return trial, trial["DEBIT"].sum(), trial["CREDIT"].sum(), "ok"
 
 
 
