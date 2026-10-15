@@ -47,12 +47,12 @@ def get_trial(co):
         df_chart = pd.DataFrame(chart_data)
 
         if df_gen.empty or df_genral.empty:
-            return pd.DataFrame(), 0, 0, "GEN ya GENRAL me co="+str(co)+" ka data nahi mila"
+            return pd.DataFrame(), 0, 0, "gen ya Genral me co="+str(co)+" ka data nahi mila"
 
         merged = pd.merge(df_gen, df_genral, left_on=["modegen","vnogen"], right_on=["modeg","vnog2"], how="inner")
         
         if merged.empty:
-            return pd.DataFrame(), 0, 0, "GEN aur GENRAL ka joint (modegen=modeg, vnogen=vnog2) nahi mila"
+            return pd.DataFrame(), 0, 0, "gen aur genral ka joint (modegen=modeg, vnogen=vnog2) nahi mila"
 
         df1 = pd.DataFrame()
         df1["acc_code"] = merged["accg2"].astype(str)
