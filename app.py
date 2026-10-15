@@ -2,87 +2,74 @@ import streamlit as st
 import pandas as pd
 from supabase import create_client
 
-st.set_page_config(page_title="Trial Balance CO-1", layout="wide", page_icon="📊")
-
-# --- LOGIN (Sidebar) ---
-st.sidebar.title("🔐 Login")
-pwd = st.sidebar.text_input("Password", type="password")
-# Default password 1234 hai, baad me Secrets me change kar dena
-APP_PASSWORD = st.secrets.get("APP_PASSWORD", "1234") 
-
-if pwd != APP_PASSWORD:
-    st.sidebar.warning("Password dalo")
-    st.title("Trial Balance - CO 1")
-    st.info("Login karo sidebar se - Default password: 1234")
-    st.stop()
-
-st.sidebar.success("Logged In ✅")
-
-# --- SUPABASE CONNECT ---
-try:
-    URL = st.secrets["SUPABASE_URL"]
-    KEY = st.secrets["SUPABASE_KEY"]
-    APP_PW = st.secrets["APP_PASSWORD"]
-except Exception:
-    st.error("Secrets me SUPABASE_URL aur SUPABASE_KEY dalna hai")
-    st.code('''
-SUPABASE_URL = "url line"
-SUPABASE_KEY = "api anon key long line"
-APP_PASSWORD = "1234"
-    ''')
-    st.stop()
-
+URL = st.secrets["SUPABASE_URL"]
+KEY = st.secrets["SUPABASE_KEY"]
 supabase = create_client(URL, KEY)
 
-st.title("📊 Trial Balance - Company 1")
-st.caption("Gen (A=Cashbook, B=JV) + General | CO=1 | Live from Supabase")
+# Company select
+co_code = st.selectbox("Company Select karo", [1, 2], index=0)
 
 @st.cache_data(ttl=60)
-def load_data():
-    res = supabase.table("trial_balance_co1").select("*").order("acc_code").execute()
-    return pd.DataFrame(res.data)
+def get_trial(co):
+    # 3 tables load
+    gen_data = supabase.table("GEN").select("*").eq("co", co).execute().data
+    genral_data = supabase.table("GENRAL").select("*").eq("co", co).execute().data
+    chart_data = supabase.table("chart").select("*").eq("comp", co).execute().data
 
-with st.spinner("Data load ho raha hai..."):
-    df = load_data()
+    df_gen = pd.DataFrame(gen_data)
+    df_genral = pd.DataFrame(genral_data)
+    df_chart = pd.DataFrame(chart_data)
 
-if df.empty:
-    st.warning("No data in trial_balance_co1 view - Pehle SQL View banao")
-    st.stop()
+    if df_gen.empty or df_genral.empty:
+        return pd.DataFrame(), 0, 0
 
-# --- SEARCH ---
-search = st.text_input("🔍 Account Code Search", "")
-if search:
-    df_filtered = df[df["acc_code"].astype(str).str.contains(search, case=False, na=False)]
+    # Joint key
+    merged = pd.merge(df_gen, df_genral, 
+                      left_on=["modegen","vnogen"], 
+                      right_on=["modeg","vnog2"], how="inner")
+
+    # 1st account - accg2 (jaise Ahmed Traders, Office Exp)
+    df1 = pd.DataFrame()
+    df1["acc_code"] = merged["accg2"]
+    df1["debit"] = merged["drg2"]
+    df1["credit"] = merged["crg2"]
+
+    # 2nd account - cashgen (cash code)
+    # Cash ka ulta hota hai: agar accg2 debit hai to cash credit
+    df2 = pd.DataFrame()
+    df2["acc_code"] = merged["cashgen"]
+    df2["debit"] = merged["crg2"]  # Ulta
+    df2["credit"] = merged["drg2"] # Ulta
+
+    # Dono ko joro
+    all_entries = pd.concat([df1, df2], ignore_index=True)
+    all_entries["acc_code"] = all_entries["acc_code"].astype(str)
+
+    # Sum by code
+    trial = all_entries.groupby("acc_code")[["debit","credit"]].sum().reset_index()
+    
+    # Chart se naam lao
+    df_chart["chartid"] = df_chart["chartid"].astype(str)
+    trial = pd.merge(trial, df_chart, left_on="acc_code", right_on="chartid", how="left")
+
+    # Final format jaisa aapki photo me hai
+    trial["DEBIT"] = trial["debit"] - trial["credit"]
+    trial["DEBIT"] = trial["DEBIT"].apply(lambda x: x if x>0 else 0)
+    trial["CREDIT"] = trial["credit"] - trial["debit"]
+    trial["CREDIT"] = trial["CREDIT"].apply(lambda x: x if x>0 else 0)
+
+    total_dr = trial["DEBIT"].sum()
+    total_cr = trial["CREDIT"].sum()
+    
+    return trial, total_dr, total_cr
+
+df_trial, t_dr, t_cr = get_trial(co_code)
+
+if not df_trial.empty:
+    st.write(f"### TRIAL BALANCE - Company {co_code}")
+    st.write(f"**Total Debit: {t_dr:,.0f} | Total Credit: {t_cr:,.0f} | Diff: {t_dr-t_cr:,.0f}**")
+    
+    # Aapki photo jaisa table
+    st.dataframe(df_trial[["acc_code","chartname","charttype","DEBIT","CREDIT"]].sort_values("charttype"))
 else:
-    df_filtered = df
-
-# --- TOTALS ---
-col1, col2, col3, col4 = st.columns(4)
-total_debit = df_filtered["debit"].astype(float).sum()
-total_credit = df_filtered["credit"].astype(float).sum()
-# balance = df_filtered["balance"].astype(float).sum()
-balance = total_debit - total_credit 
-
-
-col1.metric("Total Debit", f"{total_debit:,.2f}")
-col2.metric("Total Credit", f"{total_credit:,.2f}")
-col3.metric("Diff", f"{balance:,.2f}")
-col4.metric("Accounts", len(df_filtered))
-
-# --- TABLE ---
-st.dataframe(
-    df_filtered.style.format({"total_debit":"{:,.2f}", "total_credit":"{:,.2f}", "balance":"{:,.2f}"}),
-    use_container_width=True,
-    height=600
-)
-
-# --- DOWNLOAD ---
-def convert_df(df):
-    return df.to_csv(index=False).encode('utf-8')
-
-st.download_button(
-    "📥 Excel/CSV Download",
-    convert_df(df_filtered),
-    "trial_balance_co1.csv",
-    "text/csv"
-)
+    st.warning("Is company ka data nahi mila, Supabase me co=1 ya 2 check karo")
