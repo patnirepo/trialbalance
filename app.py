@@ -38,9 +38,11 @@ def get_trial(co):
             genral_data = supabase.table("genral").select("*").eq("co", co).execute().data
             
         try:
-            chart_data = supabase.table("chart").select("*").eq("comp", co).execute().data
+            chart_data = supabase.table("chart").select("*").execute().data
+            # chart_data = supabase.table("chart").select("*").eq("comp", co).execute().data
         except:
-            chart_data = supabase.table("chart").select("*").eq("comp", co).execute().data
+            chart_data = supabase.table("CHART").select("*").execute().data
+            # chart_data = supabase.table("chart").select("*").eq("comp", co).execute().data
 
         df_gen = pd.DataFrame(gen_data)
         df_genral = pd.DataFrame(genral_data)
