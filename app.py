@@ -20,13 +20,13 @@ st.sidebar.success("Logged In ✅")
 
 # --- SUPABASE CONNECT ---
 try:
-    URL = st.secrets["SUPABASE_URL"]
-    KEY = st.secrets["SUPABASE_KEY"]
+    URL = st.secrets["https://lpojxxjtworbuwtuphsl.supabase.co"]
+    KEY = st.secrets["eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxwb2p4eGp0d29yYnV3dHVwaHNsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIyODQxMDgsImV4cCI6MjA5Nzg2MDEwOH0.i_VvEshWkYjBrzsQewDUZ0c_EseFP3x7xmuAWF7Ri2I"]
 except Exception:
     st.error("Secrets me SUPABASE_URL aur SUPABASE_KEY dalna hai")
     st.code('''
-SUPABASE_URL = "https://YOUR_ID.supabase.co"
-SUPABASE_KEY = "YOUR_ANON_KEY"
+SUPABASE_URL = "url line"
+SUPABASE_KEY = "api anon key long line"
 APP_PASSWORD = "1234"
     ''')
     st.stop()
@@ -57,9 +57,11 @@ else:
 
 # --- TOTALS ---
 col1, col2, col3, col4 = st.columns(4)
-total_debit = df_filtered["total_debit"].astype(float).sum()
-total_credit = df_filtered["total_credit"].astype(float).sum()
-balance = df_filtered["balance"].astype(float).sum()
+total_debit = df_filtered["debit"].astype(float).sum()
+total_credit = df_filtered["credit"].astype(float).sum()
+# balance = df_filtered["balance"].astype(float).sum()
+balance = total_debit - total_credit 
+
 
 col1.metric("Total Debit", f"{total_debit:,.2f}")
 col2.metric("Total Credit", f"{total_credit:,.2f}")
