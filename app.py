@@ -1,5 +1,17 @@
 import streamlit as st
 import pandas as pd
+from supabase import create_client
+
+# --- Supabase Connection ---
+# Agar aapke secrets me naam alag hai to yahan change kar dena
+try:
+    url = st.secrets["SUPABASE_URL"]
+    key = st.secrets["SUPABASE_KEY"]
+except:
+    url = st.secrets["supabase"]["url"]
+    key = st.secrets["supabase"]["key"]
+
+supabase = create_client(url, key)
 
 @st.cache_data(ttl=60)
 def get_trial(co):
@@ -80,7 +92,6 @@ if "DISPLAY_TYPE" in df_trial.columns and "DISPLAY_NAME" in df_trial.columns:
 else:
     df_show = df_trial.sort_values(["DISPLAY_NAME"])
 
-# Aapka wala final_list wala display code - same as photo
 final_list = []
 last_group = None
 for g_type, group_df in df_show.groupby("DISPLAY_TYPE", sort=True):
