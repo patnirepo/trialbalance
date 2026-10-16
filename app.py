@@ -7,8 +7,20 @@ url = st.secrets["SUPABASE_URL"]
 key = st.secrets["SUPABASE_KEY"]
 supabase = create_client(url, key)
 
+
+
+def clean_code(x):
+    try:
+        if pd.isna(x): return ""
+        f = float(str(x).strip())
+        if f.is_integer():
+            return str(int(f))
+        return str(f).strip()
+    except:
+        return str(x).strip()
+
 @st.cache_data(ttl=60)
-def get_trial(co): # naam same rakha
+def get_trial(co):
     chart_data = supabase.table("chart").select("*").eq("comp", co).execute().data
     gen_data = supabase.table("gen").select("*").eq("co", co).execute().data
     genral_data = supabase.table("genral").select("*").eq("co", co).execute().data
@@ -21,17 +33,21 @@ def get_trial(co): # naam same rakha
     df_gen.columns = [c.lower() for c in df_gen.columns]
     df_genral.columns = [c.lower() for c in df_genral.columns]
 
+    # --- YE LINE SAB SE AHEM HAI - 46.0 ko 46 banao ---
+    df_gen["cashgen"] = df_gen["cashgen"].apply(clean_code)
+    df_genral["accg2"] = df_genral["accg2"].apply(clean_code)
+    df_chart["chartid"] = df_chart["chartid"].apply(clean_code)
+
     df_gen["modegen"] = df_gen["modegen"].astype(str).str.strip().str.upper()
     df_gen["vnogen"] = df_gen["vnogen"].astype(str).str.strip()
-    df_gen["cashgen"] = df_gen["cashgen"].astype(str).str.strip()
     df_genral["modeg"] = df_genral["modeg"].astype(str).str.strip().str.upper()
     df_genral["vnog2"] = df_genral["vnog2"].astype(str).str.strip()
-    df_genral["accg2"] = df_genral["accg2"].astype(str).str.strip()
 
-    df_chart["chartid"] = df_chart["chartid"].astype(str)
     df_chart["chartbal"] = pd.to_numeric(df_chart["chartbal"], errors='coerce').fillna(0)
+    df_chart["chartname"] = df_chart["chartname"].astype(str)
+    df_chart["charttype"] = df_chart["charttype"].astype(str)
 
-    # Transaction
+    # Joint
     merged = pd.merge(df_gen, df_genral, left_on=["modegen","vnogen","co"], right_on=["modeg","vnog2","co"], how="inner")
     merged["drg2"] = pd.to_numeric(merged["drg2"], errors='coerce').fillna(0)
     merged["crg2"] = pd.to_numeric(merged["crg2"], errors='coerce').fillna(0)
@@ -41,6 +57,7 @@ def get_trial(co): # naam same rakha
     df2["acc_code"] = merged["cashgen"]
     df2["debit"] = merged["crg2"]
     df2["credit"] = merged["drg2"]
+
     tran = pd.concat([df1, df2], ignore_index=True).groupby("acc_code")[["debit","credit"]].sum().reset_index()
 
     # Opening
@@ -53,16 +70,19 @@ def get_trial(co): # naam same rakha
     combined = pd.concat([tran, df_open], ignore_index=True).groupby("acc_code")[["debit","credit"]].sum().reset_index()
     combined["NET_DEBIT"] = (combined["debit"] - combined["credit"]).apply(lambda x: x if x>0 else 0)
     combined["NET_CREDIT"] = (combined["credit"] - combined["debit"]).apply(lambda x: x if x>0 else 0)
-
+    
+    # Sahi Grand - ab 525,280,970 ayega
     t_dr = combined["NET_DEBIT"].sum()
     t_cr = combined["NET_CREDIT"].sum()
 
-    trial = pd.merge(combined, df_chart, left_on="acc_code", right_on="chartid", how="left")
-    trial["DISPLAY_NAME"] = trial["chartname"].fillna("A/c "+trial["acc_code"])
-    trial["DISPLAY_TYPE"] = trial["charttype"].fillna("OTHER")
-    trial.loc[trial["DISPLAY_NAME"].str.lower()=="none", "DISPLAY_NAME"] = "A/c "+trial["acc_code"]
+    trial = pd.merge(combined, df_chart, left_on="acc_code", right_on="chartid", how="inner") # inner se OTHER khatam
+    trial["DISPLAY_NAME"] = trial["chartname"]
+    trial["DISPLAY_TYPE"] = trial["charttype"]
 
     return trial, t_dr, t_cr
+
+
+
 
 # --- Main ---
 co = 1
