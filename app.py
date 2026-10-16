@@ -227,7 +227,7 @@ else: # Ledger
     with c1:
         st.download_button("📥 Excel", df_leg.to_csv(index=False).encode(), f"Ledger_{acc_code}_{company_map[co]}.csv")
     with c2:
-       if st.button("🖨️ Print Ledger"):
+        if st.button("🖨️ Print Ledger"):
     html = f"""
     <html><head><style>
     body{{font-family: Arial;}}
