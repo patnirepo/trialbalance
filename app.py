@@ -89,6 +89,9 @@ def get_trial(co):
     return trial, t_dr, t_cr
 
 @st.cache_data(ttl=60)
+
+
+
 def get_ledger(co, acc_code):
     df_chart, df_gen, df_genral = load_all(co)
     df_gen["modegen"] = df_gen["modegen"].astype(str).str.strip().str.upper()
@@ -98,30 +101,33 @@ def get_ledger(co, acc_code):
     df_chart["chartbal"] = pd.to_numeric(df_chart.get("chartbal",0), errors='coerce').fillna(0)
 
     merged = pd.merge(df_gen, df_genral, left_on=["modegen","vnogen","co"], right_on=["modeg","vnog2","co"], how="inner")
-    # Ledger entries
     merged["drg2"] = pd.to_numeric(merged["drg2"], errors='coerce').fillna(0)
     merged["crg2"] = pd.to_numeric(merged["crg2"], errors='coerce').fillna(0)
 
-    # Jahan accg2 = hamara account
+    # detailg2 ka column lower kar diya hai load_all me
+    if "detailg2" not in merged.columns:
+        merged["detailg2"] = ""
+
     leg1 = merged[merged["accg2"]==acc_code].copy()
     leg1["DEBIT"] = leg1["drg2"]
     leg1["CREDIT"] = leg1["crg2"]
     leg1["OPP"] = leg1["cashgen"]
 
-    # Jahan cashgen = hamara account
     leg2 = merged[merged["cashgen"]==acc_code].copy()
     leg2["DEBIT"] = leg2["crg2"]
     leg2["CREDIT"] = leg2["drg2"]
     leg2["OPP"] = leg2["accg2"]
 
     ledger = pd.concat([leg1, leg2], ignore_index=True)
-    # Date ka column jo bhi ho (date, dateg, vdate)
     date_col = None
     for c in ["dateg","date","vdate","gen_date","dategen"]:
         if c in ledger.columns: date_col = c; break
 
     opening = df_chart[df_chart["chartid"]==acc_code]["chartbal"].sum()
     return ledger, opening, date_col
+
+
+
 
 # ---------- Main ----------
 st.title(f"{company_map[co]} - {report_type}")
@@ -168,25 +174,50 @@ else: # Ledger
         st.stop()
 
     # Opening row
+
+    # ---------- Ledger Display Part - isko pura replace karo ----------
+
     rows = []
     bal = opening
     rows.append({"DATE": "Opening", "VNO": "", "PARTICULAR": "Opening Balance", "DEBIT": f"{opening:,.0f}" if opening>0 else "", "CREDIT": f"{abs(opening):,.0f}" if opening<0 else "", "BALANCE": f"{bal:,.0f}"})
 
-    ledger = ledger.sort_values(by=date_col if date_col else "vnogen")
+    if date_col:
+        ledger[date_col] = pd.to_datetime(ledger[date_col], errors='coerce')
+        ledger = ledger.sort_values(by=date_col)
+
     for _, r in ledger.iterrows():
         bal += r["DEBIT"] - r["CREDIT"]
-        # Particular - opposite account ka naam
+
+        # Opposite ka naam
         opp_name = df_chart[df_chart["chartid"]==r["OPP"]]["chartname"].values
         opp_name = opp_name[0] if len(opp_name)>0 else r["OPP"]
+
+        # Detailg2 - narration
+        detail = str(r.get("detailg2","")).strip()
+        if detail and detail.lower()!="nan":
+            particular = f"{opp_name} - {detail}"
+        else:
+            particular = opp_name
+
+        # Date dd-mm-yyyy
+        if date_col and pd.notna(r[date_col]):
+            d = r[date_col].strftime("%d-%m-%Y")
+        else:
+            d = ""
+
         rows.append({
-            "DATE": str(r[date_col])[:10] if date_col and pd.notna(r[date_col]) else "",
+            "DATE": d,
             "VNO": f"{r['modeg']}-{r['vnog2']}",
-            "PARTICULAR": opp_name,
+            "PARTICULAR": particular,
             "DEBIT": f"{r['DEBIT']:,.0f}" if r["DEBIT"] else "",
             "CREDIT": f"{r['CREDIT']:,.0f}" if r["CREDIT"] else "",
             "BALANCE": f"{bal:,.0f}"
         })
 
+    
+    
+   
+    
     df_leg = pd.DataFrame(rows)
     st.subheader(f"Ledger: {acc_label} | Balance: {bal:,.0f}")
     st.dataframe(df_leg, use_container_width=True, hide_index=True)
