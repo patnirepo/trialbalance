@@ -216,16 +216,41 @@ else: # Ledger
 
     
     
-   
+   st.dataframe(
+    df_leg,
+    use_container_width=True,
+    hide_index=True,
+    column_config={
+        "DATE": st.column_config.TextColumn("DATE", width="small"),
+        "VNO": st.column_config.TextColumn("VNO", width="small"),
+        "PARTICULAR": st.column_config.TextColumn("PARTICULAR", width="large"),
+        "DEBIT": st.column_config.TextColumn("DEBIT", width="small"),
+        "CREDIT": st.column_config.TextColumn("CREDIT", width="small"),
+        "BALANCE": st.column_config.TextColumn("BALANCE", width="small"),
+    }
+)
     
-    df_leg = pd.DataFrame(rows)
-    st.subheader(f"Ledger: {acc_label} | Balance: {bal:,.0f}")
-    st.dataframe(df_leg, use_container_width=True, hide_index=True)
-
+    
     c1, c2 = st.columns(2)
     with c1:
         st.download_button("📥 Excel", df_leg.to_csv(index=False).encode(), f"Ledger_{acc_code}_{company_map[co]}.csv")
     with c2:
-        if st.button("🖨️ Print Ledger"):
-            html = f"<html><head><style>table{{width:100%; border-collapse:collapse; font-size:12px}} td,th{{border:1px solid #000; padding:4px}}</style></head><body onload='window.print()'><h3 style='text-align:center'>Ledger - {acc_label} - {company_map[co]}</h3>{df_leg.to_html(index=False)}</body></html>"
-            components.html(html, height=700)
+       if st.button("🖨️ Print Ledger"):
+    html = f"""
+    <html><head><style>
+    body{{font-family: Arial;}}
+    h3{{text-align:center}}
+    table{{width:100%; border-collapse:collapse; table-layout: fixed;}}
+    th{{background:#eee; padding:6px; font-size:13px; text-align:left}}
+    td{{padding:6px; border:1px solid #000; font-size:13px; word-wrap: break-word; white-space: normal;}}
+    td:nth-child(1){{width:90px}} /* DATE */
+    td:nth-child(2){{width:60px}} /* VNO */
+    td:nth-child(3){{width:45%}} /* PARTICULAR - sab se zyada jaga */
+    td:nth-child(4), td:nth-child(5), td:nth-child(6){{width:90px; text-align:right}}
+    </style></head>
+    <body onload='window.print()'>
+    <h3>Ledger - {acc_label} - {company_map[co]}</h3>
+    {df_leg.to_html(index=False)}
+    </body></html>
+    """
+    components.html(html, height=700, scrolling=True)
