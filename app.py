@@ -177,6 +177,7 @@ else: # Ledger
 
     # ---------- Ledger Display Part - isko pura replace karo ----------
 
+
     rows = []
     bal = opening
     rows.append({"DATE": "Opening", "VNO": "", "PARTICULAR": "Opening Balance", "DEBIT": f"{opening:,.0f}" if opening>0 else "", "CREDIT": f"{abs(opening):,.0f}" if opening<0 else "", "BALANCE": f"{bal:,.0f}"})
@@ -187,24 +188,11 @@ else: # Ledger
 
     for _, r in ledger.iterrows():
         bal += r["DEBIT"] - r["CREDIT"]
-
-        # Opposite ka naam
         opp_name = df_chart[df_chart["chartid"]==r["OPP"]]["chartname"].values
         opp_name = opp_name[0] if len(opp_name)>0 else r["OPP"]
-
-        # Detailg2 - narration
         detail = str(r.get("detailg2","")).strip()
-        if detail and detail.lower()!="nan":
-            particular = f"{opp_name} - {detail}"
-        else:
-            particular = opp_name
-
-        # Date dd-mm-yyyy
-        if date_col and pd.notna(r[date_col]):
-            d = r[date_col].strftime("%d-%m-%Y")
-        else:
-            d = ""
-
+        particular = f"{opp_name} - {detail}" if detail and detail.lower()!="nan" else opp_name
+        d = r[date_col].strftime("%d-%m-%Y") if date_col and pd.notna(r[date_col]) else ""
         rows.append({
             "DATE": d,
             "VNO": f"{r['modeg']}-{r['vnog2']}",
@@ -214,21 +202,25 @@ else: # Ledger
             "BALANCE": f"{bal:,.0f}"
         })
 
+    df_leg = pd.DataFrame(rows)
+    st.subheader(f"Ledger: {acc_label} | Balance: {bal:,.0f}")
+    st.dataframe(
+        df_leg,
+        use_container_width=True,
+        hide_index=True,
+        column_config={
+            "DATE": st.column_config.TextColumn("DATE", width="small"),
+            "VNO": st.column_config.TextColumn("VNO", width="small"),
+            "PARTICULAR": st.column_config.TextColumn("PARTICULAR", width="large"),
+            "DEBIT": st.column_config.TextColumn("DEBIT", width="small"),
+            "CREDIT": st.column_config.TextColumn("CREDIT", width="small"),
+            "BALANCE": st.column_config.TextColumn("BALANCE", width="small"),
+        }
+    )
+
+
+
     
-    
-   st.dataframe(
-    df_leg,
-    use_container_width=True,
-    hide_index=True,
-    column_config={
-        "DATE": st.column_config.TextColumn("DATE", width="small"),
-        "VNO": st.column_config.TextColumn("VNO", width="small"),
-        "PARTICULAR": st.column_config.TextColumn("PARTICULAR", width="large"),
-        "DEBIT": st.column_config.TextColumn("DEBIT", width="small"),
-        "CREDIT": st.column_config.TextColumn("CREDIT", width="small"),
-        "BALANCE": st.column_config.TextColumn("BALANCE", width="small"),
-    }
-)
     
     
     c1, c2 = st.columns(2)
