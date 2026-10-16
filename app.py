@@ -91,25 +91,52 @@ df_trial, t_dr, t_cr = get_trial(co) # naam ab same hai
 st.write(f"Opening Total: {pd.DataFrame(supabase.table('chart').select('chartbal').eq('comp',co).execute().data)['chartbal'].sum() if True else 0}")
 st.write(f"Grand Debit: {t_dr:,.0f} | Grand Credit: {t_cr:,.0f} | Diff: {t_dr-t_cr:,.0f}")
 
+
+
+# Final list with group only on first row
 df_show = df_trial.sort_values(["DISPLAY_TYPE","DISPLAY_NAME"])
 final_list = []
-last_group = None
+current_group = None
+
 for g_type, g_df in df_show.groupby("DISPLAY_TYPE", sort=True):
-    for _, row in g_df.sort_values("DISPLAY_NAME").iterrows():
-        if row["NET_DEBIT"]+row["NET_CREDIT"]==0: continue
+    g_df = g_df.sort_values("DISPLAY_NAME")
+    for i, (_, row) in enumerate(g_df.iterrows()):
+        if row["NET_DEBIT"]+row["NET_CREDIT"]==0: 
+            continue
         final_list.append({
-            "GROUP": g_type if g_type!=last_group else "",
+            "GROUP": g_type if i==0 else "",  # Sirf pehli line pe group
             "ACCOUNT TITLE": row["DISPLAY_NAME"],
             "DEBIT": f"{row['NET_DEBIT']:,.0f}" if row["NET_DEBIT"] else "",
             "CREDIT": f"{row['NET_CREDIT']:,.0f}" if row["NET_CREDIT"] else ""
         })
-    last_group = g_type
 
-final_list.append({"GROUP":"","ACCOUNT TITLE":"GRAND TOTAL","DEBIT":f"{t_dr:,.0f}","CREDIT":f"{t_cr:,.0f}"})
+final_list.append({
+    "GROUP": "",
+    "ACCOUNT TITLE": "GRAND TOTAL",
+    "DEBIT": f"{t_dr:,.0f}",
+    "CREDIT": f"{t_cr:,.0f}"
+})
+
 df_final = pd.DataFrame(final_list)
 st.dataframe(df_final, use_container_width=True, hide_index=True)
 
 st.download_button("📥 Excel", df_final.to_csv(index=False).encode(), "TB.csv")
-if st.button("🖨️ Print"):
-    html = f"<html><body onload='window.print()'>{df_final.to_html(index=False)}</body></html>"
-    components.html(html, height=700)
+
+# Print me bhi same - group sirf first pe
+if st.button("🖨️ Print Report"):
+    html_table = df_final.to_html(index=False, border=1)
+    html = f"""
+    <html><head><style>
+    body{{font-family: Arial;}}
+    table{{width:100%; border-collapse:collapse; font-size:12px;}}
+    th{{background:#eee; text-align:left; padding:6px;}}
+    td{{padding:5px; border:1px solid #000;}}
+    .grand{{font-weight:bold;}}
+    </style></head><body onload="window.print()">
+    <h2 style="text-align:center">Trial Balance - Company {co}</h2>
+    {html_table}
+    </body></html>
+    """
+    components.html(html, height=700, scrolling=True)
+
+
