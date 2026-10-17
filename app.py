@@ -216,31 +216,29 @@ else: # Ledger
         })
 
    
-df_leg = pd.DataFrame(rows)
+    df_leg = pd.DataFrame(rows)
 
-# None ko khali kar do aur number ko format kar do
-for col in ["DEBIT", "CREDIT", "BALANCE"]:
-    df_leg[col] = pd.to_numeric(df_leg[col], errors='coerce')
-    df_leg[col] = df_leg[col].apply(lambda x: "" if pd.isna(x) or x == 0 else f"{x:,.0f}")
+    # None ko khali kar do aur number ko format kar do
+    for col in ["DEBIT", "CREDIT", "BALANCE"]:
+        df_leg[col] = pd.to_numeric(df_leg[col], errors='coerce')
+        df_leg[col] = df_leg[col].apply(lambda x: "" if pd.isna(x) or x == 0 else f"{x:,.0f}")
 
-st.subheader(f"Ledger: {acc_label} | Balance: {bal:,.0f}")
-st.dataframe(
-    df_leg,
-    use_container_width=True,
-    hide_index=True,
-    column_config={
-        "DATE": st.column_config.TextColumn("DATE", width="small"),
-        "VNO": st.column_config.TextColumn("VNO", width="small"),
-        "PARTICULAR": st.column_config.TextColumn("PARTICULAR", width="large"),
-        "DEBIT": st.column_config.TextColumn("DEBIT", width="small"),
-        "CREDIT": st.column_config.TextColumn("CREDIT", width="small"),
-        "BALANCE": st.column_config.TextColumn("BALANCE", width="small"),
-    }
-)
+    st.subheader(f"Ledger: {acc_label} | Balance: {bal:,.0f}")
+    st.dataframe(
+        df_leg,
+        use_container_width=True,
+        hide_index=True,
+        column_config={
+            "DATE": st.column_config.TextColumn("DATE", width="small"),
+            "VNO": st.column_config.TextColumn("VNO", width="small"),
+            "PARTICULAR": st.column_config.TextColumn("PARTICULAR", width="large"),
+            "DEBIT": st.column_config.TextColumn("DEBIT", width="small"),
+            "CREDIT": st.column_config.TextColumn("CREDIT", width="small"),
+            "BALANCE": st.column_config.TextColumn("BALANCE", width="small"),
+        }
+    )
 
-    
-
-c1, c2 = st.columns(2)
+    c1, c2 = st.columns(2)
     with c1:
         st.download_button("📥 Excel", df_leg.to_csv(index=False).encode(), f"Ledger_{acc_code}_{company_map[co]}.csv")
     with c2:
