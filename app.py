@@ -11,7 +11,8 @@ st.set_page_config(page_title="Accounts", layout="wide")
 
 url = st.secrets["supabase"]["url"]
 key = st.secrets["supabase"]["key"]
-supabase = create_client(url, key)
+supabase = create_client(st.secrets["supabase"]["url"], st.secrets["supabase"]["anon_key"])
+
 
 def clean_code(x):
     try:
