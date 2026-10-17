@@ -5,6 +5,13 @@ import streamlit.components.v1 as components
 
 st.set_page_config(page_title="Accounts", layout="wide")
 
+# for numeric below 5 CSS lines set
+st.markdown("""
+<style>
+td:nth-child(n+4) { text-align: right !important; }
+</style>
+""", unsafe_allow_html=True)
+
 url = st.secrets["SUPABASE_URL"]
 key = st.secrets["SUPABASE_KEY"]
 supabase = create_client(st.secrets["supabase"]["url"], st.secrets["supabase"]["anon_key"])
@@ -208,27 +215,30 @@ else: # Ledger
             "BALANCE": f"{bal:,.0f}"
         })
 
-    df_leg = pd.DataFrame(rows)
-    # Ye 3 lines nayi add karo - is se None khatam hoga aur Number banega
-    df_leg["DEBIT"] = pd.to_numeric(df_leg["DEBIT"], errors='coerce')
-    df_leg["CREDIT"] = pd.to_numeric(df_leg["CREDIT"], errors='coerce')
-    df_leg["BALANCE"] = pd.to_numeric(df_leg["BALANCE"], errors='coerce')
+   
+df_leg = pd.DataFrame(rows)
 
-    st.subheader(f"Ledger: {acc_label} | Balance: {bal:,.0f}")
-    st.dataframe(
-        df_leg,
-        use_container_width=True,
-        hide_index=True,
-        column_config={
-            "DATE": st.column_config.TextColumn("DATE", width="small"),
-            "VNO": st.column_config.TextColumn("VNO", width="small"),
-            "PARTICULAR": st.column_config.TextColumn("PARTICULAR", width="large"),
-            "DEBIT": st.column_config.NumberColumn("DEBIT", width="small", format="%,.Of"),
-            "CREDIT": st.column_config.NumberColumn("CREDIT", width="small", format="%,.Of"),
-            "BALANCE": st.column_config.NumberColumn("BALANCE", width="small", format="%,.Of"),
-        }
-    )
+# None ko khali kar do aur number ko format kar do
+for col in ["DEBIT", "CREDIT", "BALANCE"]:
+    df_leg[col] = pd.to_numeric(df_leg[col], errors='coerce')
+    df_leg[col] = df_leg[col].apply(lambda x: "" if pd.isna(x) or x == 0 else f"{x:,.0f}")
 
+st.subheader(f"Ledger: {acc_label} | Balance: {bal:,.0f}")
+st.dataframe(
+    df_leg,
+    use_container_width=True,
+    hide_index=True,
+    column_config={
+        "DATE": st.column_config.TextColumn("DATE", width="small"),
+        "VNO": st.column_config.TextColumn("VNO", width="small"),
+        "PARTICULAR": st.column_config.TextColumn("PARTICULAR", width="large"),
+        "DEBIT": st.column_config.TextColumn("DEBIT", width="small"),
+        "CREDIT": st.column_config.TextColumn("CREDIT", width="small"),
+        "BALANCE": st.column_config.TextColumn("BALANCE", width="small"),
+    }
+)
+
+    
 
     c1, c2 = st.columns(2)
     with c1:
