@@ -218,10 +218,11 @@ else: # Ledger
    
     df_leg = pd.DataFrame(rows)
 
-    # None ko khali kar do aur number ko format kar do
+    # Saaf karna - string None ko number banao
     for col in ["DEBIT", "CREDIT", "BALANCE"]:
-        df_leg[col] = pd.to_numeric(df_leg[col], errors='coerce')
-        df_leg[col] = df_leg[col].apply(lambda x: "" if pd.isna(x) or x == 0 else f"{x:,.0f}")
+        df_leg[col] = df_leg[col].replace("None", 0)
+        df_leg[col] = df_leg[col].replace("", 0)
+        df_leg[col] = pd.to_numeric(df_leg[col], errors='coerce').fillna(0)
 
     st.subheader(f"Ledger: {acc_label} | Balance: {bal:,.0f}")
     st.dataframe(
@@ -232,9 +233,9 @@ else: # Ledger
             "DATE": st.column_config.TextColumn("DATE", width="small"),
             "VNO": st.column_config.TextColumn("VNO", width="small"),
             "PARTICULAR": st.column_config.TextColumn("PARTICULAR", width="large"),
-            "DEBIT": st.column_config.TextColumn("DEBIT", width="small"),
-            "CREDIT": st.column_config.TextColumn("CREDIT", width="small"),
-            "BALANCE": st.column_config.TextColumn("BALANCE", width="small"),
+            "DEBIT": st.column_config.NumberColumn("DEBIT", width="small", format="%,.0f"),
+            "CREDIT": st.column_config.NumberColumn("CREDIT", width="small", format="%,.0f"),
+            "BALANCE": st.column_config.NumberColumn("BALANCE", width="small", format="%,.0f"),
         }
     )
 
