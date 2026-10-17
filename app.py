@@ -240,7 +240,7 @@ st.dataframe(
 
     
 
-    c1, c2 = st.columns(2)
+c1, c2 = st.columns(2)
     with c1:
         st.download_button("📥 Excel", df_leg.to_csv(index=False).encode(), f"Ledger_{acc_code}_{company_map[co]}.csv")
     with c2:
