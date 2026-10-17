@@ -5,8 +5,12 @@ import streamlit.components.v1 as components
 
 st.set_page_config(page_title="Accounts", layout="wide")
 
-url = st.secrets["SUPABASE_URL"]
-key = st.secrets["SUPABASE_KEY"]
+# url = st.secrets["SUPABASE_URL"]
+# key = st.secrets["SUPABASE_KEY"]
+# supabase = create_client(url, key)
+
+url = st.secrets["supabase"]["url"]
+key = st.secrets["supabase"]["key"]
 supabase = create_client(url, key)
 
 def clean_code(x):
