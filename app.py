@@ -193,8 +193,9 @@ else: # Ledger
 
     rows = []
     bal = opening
-    rows.append({"DATE": "Opening", "VNO": "", "PARTICULAR": "Opening Balance", "DEBIT": f"{opening:,.0f}" if opening>0 else "", "CREDIT": f"{abs(opening):,.0f}" if opening<0 else "", "BALANCE": f"{bal:,.0f}"})
-
+    # rows.append({"DATE": "Opening", "VNO": "", "PARTICULAR": "Opening Balance", "DEBIT": f"{opening:,.0f}" if opening>0 else "", "CREDIT": f"{abs(opening):,.0f}" if opening<0 else "", "BALANCE": f"{bal:,.0f}"})
+    rows.append({"DATE": "Opening", "VNO": "", "PARTICULAR": "Opening Balance", "DEBIT": 0, "CREDIT": 0, "BALANCE": opening})
+    
     if date_col:
         ledger[date_col] = pd.to_datetime(ledger[date_col], errors='coerce')
         ledger = ledger.sort_values(by=date_col)
@@ -216,12 +217,12 @@ else: # Ledger
         })
    
     df_leg = pd.DataFrame(rows)
-
-    # Saaf karna - string None ko number banao
     for col in ["DEBIT", "CREDIT", "BALANCE"]:
-        df_leg[col] = df_leg[col].replace("None", 0)
-        df_leg[col] = df_leg[col].replace("", 0)
         df_leg[col] = pd.to_numeric(df_leg[col], errors='coerce').fillna(0)
+
+    # 0 ko blank karne ke liye - DEBIT/CREDIT me 0 ko None banao
+    df_leg["DEBIT"] = df_leg["DEBIT"].apply(lambda x: None if x == 0 else x)
+    df_leg["CREDIT"] = df_leg["CREDIT"].apply(lambda x: None if x == 0 else x)
 
     st.subheader(f"Ledger: {acc_label} | Balance: {bal:,.0f}")
     st.dataframe(
@@ -237,7 +238,7 @@ else: # Ledger
             "BALANCE": st.column_config.NumberColumn("BALANCE", width="small", format="%,.0f"),
         }
     )
-
+    
     c1, c2 = st.columns(2)
     with c1:
         st.download_button("📥 Excel", df_leg.to_csv(index=False).encode(), f"Ledger_{acc_code}_{company_map[co]}.csv")
