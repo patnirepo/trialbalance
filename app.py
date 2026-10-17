@@ -208,7 +208,7 @@ else: # Ledger
         d = r[date_col].strftime("%d-%m-%Y") if date_col and pd.notna(r[date_col]) else ""
         rows.append({
                 "DATE": d,
-                "VNO": f"{r['modeg']}-{r['vno']}",
+                "VNO": f"{r.get('modeg', r.get('MODEG', ''))}-{r.get('vno', r.get('VNO', ''))}",
                 "PARTICULAR": particular,
                 "DEBIT": r['DEBIT'],
                 "CREDIT": r['CREDIT'],
