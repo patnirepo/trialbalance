@@ -207,14 +207,13 @@ else: # Ledger
         particular = f"{opp_name} - {detail}" if detail and detail.lower()!="nan" else opp_name
         d = r[date_col].strftime("%d-%m-%Y") if date_col and pd.notna(r[date_col]) else ""
         rows.append({
-            "DATE": d,
-            "VNO": f"{r['modeg']}-{r['vnog2']}",
-            "PARTICULAR": particular,
-            "DEBIT": f"{r['DEBIT']:,.0f}" if r["DEBIT"] else "",
-            "CREDIT": f"{r['CREDIT']:,.0f}" if r["CREDIT"] else "",
-            "BALANCE": f"{bal:,.0f}"
+                "DATE": d,
+                "VNO": f"{r['modeg']}-{r['vno']}",
+                "PARTICULAR": particular,
+                "DEBIT": r['DEBIT'],
+                "CREDIT": r['CREDIT'],
+                "BALANCE": bal
         })
-
    
     df_leg = pd.DataFrame(rows)
 
