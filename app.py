@@ -209,6 +209,11 @@ else: # Ledger
         })
 
     df_leg = pd.DataFrame(rows)
+    # Ye 3 lines nayi add karo - is se None khatam hoga aur Number banega
+    df_leg["DEBIT"] = pd.to_numeric(df_leg["DEBIT"], errors='coerce')
+    df_leg["CREDIT"] = pd.to_numeric(df_leg["CREDIT"], errors='coerce')
+    df_leg["BALANCE"] = pd.to_numeric(df_leg["BALANCE"], errors='coerce')
+
     st.subheader(f"Ledger: {acc_label} | Balance: {bal:,.0f}")
     st.dataframe(
         df_leg,
