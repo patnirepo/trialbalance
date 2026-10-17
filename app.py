@@ -218,9 +218,9 @@ else: # Ledger
             "DATE": st.column_config.TextColumn("DATE", width="small"),
             "VNO": st.column_config.TextColumn("VNO", width="small"),
             "PARTICULAR": st.column_config.TextColumn("PARTICULAR", width="large"),
-            "DEBIT": st.column_config.numbercolumn("DEBIT", width="small", format="%,.0f"),
-            "CREDIT": st.column_config.numbercolumn("CREDIT", width="small", format="%,.0f"),
-            "BALANCE": st.column_config.numbercolumn("BALANCE", width="small", format="%,.0f"),
+            "DEBIT": st.column_config.numbercolumn("DEBIT", width="small", format="%,.Of"),
+            "CREDIT": st.column_config.numbercolumn("CREDIT", width="small", format="%,.Of"),
+            "BALANCE": st.column_config.numbercolumn("BALANCE", width="small", format="%,.Of"),
         }
     )
 
