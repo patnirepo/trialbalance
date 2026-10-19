@@ -164,11 +164,11 @@ if report_type == "Trial Balance":
         display_df[c] = pd.to_numeric(display_df[c], errors='coerce').fillna(0)
         display_df[c] = display_df[c].apply(lambda x: float('nan') if x==0 else x)
 
-    st.dataframe(display_df, use_container_width=True, hide_index=True,
-        column_config={
-            "DEBIT": st.column_config.NumberColumn("DEBIT", format="%,.0f"),
-            "CREDIT": st.column_config.NumberColumn("CREDIT", format="%,.0f")
-        })
+    # 0 ko blank string banao aur comma format
+    for c in ["DEBIT","CREDIT"]:
+        display_df[c] = display_df[c].apply(lambda x: "" if pd.isna(x) or x==0 else f"{float(x):,.0f}")
+
+    st.dataframe(display_df, use_container_width=True, hide_index=True)
     
     c1, c2 = st.columns(2)
     with c1:
