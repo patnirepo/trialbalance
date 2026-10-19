@@ -186,10 +186,10 @@ with col2:
             components.html(html, height=700)
 
     else: # Ledger
-    df_chart, _, _ = load_all(co)
-    df_chart["label"] = df_chart["chartid"] + " - " + df_chart["chartname"].astype(str)
-    acc_label = st.selectbox("Account Select karo", df_chart["label"].sort_values().tolist())
-    acc_code = acc_label.split(" - ")[0]
+        df_chart, _, _ = load_all(co)
+        df_chart["label"] = df_chart["chartid"] + " - " + df_chart["chartname"].astype(str)
+        acc_label = st.selectbox("Account Select karo", df_chart["label"].sort_values().tolist())
+        acc_code = acc_label.split(" - ")[0]
 
     ledger, opening, date_col = get_ledger(co, acc_code)
 
