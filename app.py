@@ -156,16 +156,31 @@ if report_type == "Trial Balance":
     for g_type, g_df in df_show.groupby("DISPLAY_TYPE", sort=True):
         g_df = g_df.sort_values("DISPLAY_NAME")
         for i, (_, row) in enumerate(g_df.iterrows()):
-            final_list.append({
-                "GROUP": g_type if i==0 else "",
-                "ACCOUNT TITLE": row["DISPLAY_NAME"],
-                "DEBIT": f"{row['NET_DEBIT']:,.0f}" if row['NET_DEBIT'] else "",
-                "CREDIT": f"{row['NET_CREDIT']:,.0f}" if row['NET_CREDIT'] else ""
-            })
-    final_list.append({"GROUP":"","ACCOUNT TITLE":"GRAND TOTAL","DEBIT":f"{t_dr:,.0f}","CREDIT":f"{t_cr:,.0f}"})
-    df_final = pd.DataFrame(final_list)
-    st.dataframe(df_final, use_container_width=True, hide_index=True)
+        final_list.append({
+            "GROUP": g_type if i==0 else "",
+            "ACCOUNT TITLE": row["DISPLAY_NAME"],
+            "DEBIT": row['NET_DEBIT'] if row['NET_DEBIT'] else None,
+            "CREDIT": row['NET_CREDIT'] if row['NET_CREDIT'] else None
+        })
 
+    final_list.append({"GROUP":"","ACCOUNT TITLE":"GRAND TOTAL","DEBIT":t_debit,"CREDIT":t_credit})
+    df_final = pd.DataFrame(final_list)
+    for col in ["DEBIT", "CREDIT"]:
+        df_final[col] = pd.to_numeric(df_final[col], errors='coerce')
+
+    st.dataframe(
+        df_final, 
+        use_container_width=True, 
+        hide_index=True,
+        column_config={
+            "GROUP": st.column_config.TextColumn("GROUP", width="small"),
+            "ACCOUNT TITLE": st.column_config.TextColumn("ACCOUNT TITLE", width="large"),
+            "DEBIT": st.column_config.NumberColumn("DEBIT", width="small", format="%,.0f"),
+            "CREDIT": st.column_config.NumberColumn("CREDIT", width="small", format="%,.0f"),
+        }
+    )
+
+    
     col1, col2 = st.columns(2)
     with col1:
         st.download_button("📥 Excel", df_final.to_csv(index=False).encode(), f"TB_{company_map[co]}.csv")
