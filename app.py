@@ -164,7 +164,7 @@ if report_type == "Trial Balance":
     final_list.append({"GROUP": "", "ACCOUNT TITLE": "GRAND TOTAL", "DEBIT": t_debit, "CREDIT": t_credit})
     df_final = pd.DataFrame(final_list)
     for col in ["DEBIT", "CREDIT"]:
-    df_final[col] = pd.to_numeric(df_final[col], errors='coerce')
+        df_final[col] = pd.to_numeric(df_final[col], errors='coerce')
 
     st.dataframe(
     df_final,
