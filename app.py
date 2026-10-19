@@ -1,4 +1,4 @@
-import streamlit as st
+    import streamlit as st
 import pandas as pd
 from supabase import create_client
 import streamlit.components.v1 as components
@@ -188,8 +188,10 @@ else:
     acc_code = acc_label.split(" - ")[0]
     ledger, opening, date_col = get_ledger(co, acc_code)
     
-    # --- Ledger Final Fix - Right Align + No .0 ---
- 
+    
+       
+    
+    # --- Ledger Final Fix - Right Align + Print + Excel ---
     rows = []
     bal = opening
     rows.append({"DATE": "Opening", "VNO": "", "PARTICULAR": "Opening Balance", "DEBIT": "", "CREDIT": "", "BALANCE": f"{opening:,.0f}" if opening!=0 else ""})
@@ -206,27 +208,34 @@ else:
         part = f"{opp} - {detail}" if detail and detail.lower()!="nan" and detail!="" else opp
         d = ""
         if date_col and pd.notna(r.get(date_col)):
-            try:
-                d = pd.to_datetime(r[date_col]).strftime("%d-%m-%Y")
-            except:
-                d = str(r[date_col])
+            try: d = pd.to_datetime(r[date_col]).strftime("%d-%m-%Y")
+            except: d = str(r[date_col])
     
         debit_str = "" if r.get("DEBIT",0)==0 else f"{float(r.get('DEBIT',0)):,.0f}"
         credit_str = "" if r.get("CREDIT",0)==0 else f"{float(r.get('CREDIT',0)):,.0f}"
         bal_str = f"{bal:,.0f}"
-    
         rows.append({"DATE": d, "VNO": f"{r.get('modeg','')}-{r.get('vnog2','')}", "PARTICULAR": part, "DEBIT": debit_str, "CREDIT": credit_str, "BALANCE": bal_str})
 
-    # HTML Table
+    df_leg = pd.DataFrame(rows) # Excel ke liye
+
     html_rows = ""
     for rr in rows:
         html_rows += f"<tr><td style='border:1px solid #ddd; padding:5px;'>{rr['DATE']}</td><td style='border:1px solid #ddd; padding:5px;'>{rr['VNO']}</td><td style='border:1px solid #ddd; padding:5px;'>{rr['PARTICULAR']}</td><td style='border:1px solid #ddd; padding:5px; text-align:right;'>{rr['DEBIT']}</td><td style='border:1px solid #ddd; padding:5px; text-align:right;'>{rr['CREDIT']}</td><td style='border:1px solid #ddd; padding:5px; text-align:right;'>{rr['BALANCE']}</td></tr>"
 
     final_html = f"""
     <table style='width:100%; border-collapse:collapse; font-family:Arial; font-size:13px;'>
-    <tr style='background:#e0e0e0;'><th style='border:1px solid #ccc; padding:6px; text-align:left;'>DATE</th><th style='border:1px solid #ccc; padding:6px; text-align:left;'>VNO</th><th style='border:1px solid #ccc; padding:6px; text-align:left;'>PARTICULAR</th><th style='border:1px solid #ccc; padding:6px; text-align:right;'>DEBIT</th><th style='border:1px solid #ccc; padding:6px; text-align:right;'>CREDIT</th><th style='border:1px solid #ccc; padding:6px; text-align:right;'>BALANCE</th></tr>
+    <tr style='background:#e0e0e0;'><th style='border:1px solid #ccc; padding:6px;'>DATE</th><th style='border:1px solid #ccc; padding:6px;'>VNO</th><th style='border:1px solid #ccc; padding:6px;'>PARTICULAR</th><th style='border:1px solid #ccc; padding:6px; text-align:right;'>DEBIT</th><th style='border:1px solid #ccc; padding:6px; text-align:right;'>CREDIT</th><th style='border:1px solid #ccc; padding:6px; text-align:right;'>BALANCE</th></tr>
     {html_rows}
     </table>
     """
     st.subheader(f"Ledger: {acc_label} | Balance: {bal:,.0f}")
     st.markdown(final_html, unsafe_allow_html=True)
+
+    # --- Buttons ab ayenge ---
+    c1, c2 = st.columns(2)
+    with c1:
+        st.download_button("📥 Excel Download", df_leg.to_csv(index=False).encode('utf-8'), file_name=f"Ledger_{acc_code}.csv", mime="text/csv")
+    with c2:
+        if st.button("🖨️ Print"):
+            print_html = f"<html><head><title>Ledger - {acc_label}</title></head><body onload='window.print()'><h3>Ledger: {acc_label} | Balance: {bal:,.0f}</h3>{final_html}</body></html>"
+            components.html(print_html, height=700, scrolling=True)
