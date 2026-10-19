@@ -157,7 +157,7 @@ if report_type == "Trial Balance":
     t_credit = df_show["NET_CREDIT"].sum()
 
     for g_type, g_df in df_show.groupby("DISPLAY_TYPE", sort=True):
-    g_df = g_df.sort_values("DISPLAY_NAME")
+        g_df = g_df.sort_values("DISPLAY_NAME")
     for i, (_, row) in enumerate(g_df.iterrows()):
         final_list.append({"GROUP": g_type if i==0 else "", "ACCOUNT TITLE": row["DISPLAY_NAME"], "DEBIT": row['NET_DEBIT'] if row['NET_DEBIT'] else None, "CREDIT": row['NET_CREDIT'] if row['NET_CREDIT'] else None})
 
