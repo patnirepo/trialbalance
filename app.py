@@ -4,6 +4,12 @@ from supabase import create_client
 import streamlit.components.v1 as components
 
 st.set_page_config(page_title="Accounts", layout="wide")
+st.markdown("""
+<style>
+.stDeployButton, [data-testid="stManageAppButton"] {display: none !important;}
+</style>
+""", unsafe_allow_html=True)
+
 ## --- Hide Bottom Manage App Button Only ---
 #st.markdown("""
 #<style>
