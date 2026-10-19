@@ -153,8 +153,8 @@ if report_type == "Trial Balance":
 
     df_show = df_trial.sort_values(["DISPLAY_TYPE","DISPLAY_NAME"])
     final_list = []
-t_debit = df_show["NET_DEBIT"].sum()
-t_credit = df_show["NET_CREDIT"].sum()
+    t_debit = df_show["NET_DEBIT"].sum()
+    t_credit = df_show["NET_CREDIT"].sum()
 
 for g_type, g_df in df_show.groupby("DISPLAY_TYPE", sort=True):
     g_df = g_df.sort_values("DISPLAY_NAME")
