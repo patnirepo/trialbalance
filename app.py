@@ -7,8 +7,16 @@ st.set_page_config(page_title="Accounts", layout="wide")
 st.markdown("""
 <style>
 .stDeployButton, [data-testid="stManageAppButton"] {display: none !important;}
+#MainMenu {visibility: hidden;}
+footer {visibility: hidden;}
 </style>
 """, unsafe_allow_html=True)
+
+#st.markdown("""
+#<style>
+#.stDeployButton, [data-testid="stManageAppButton"] {display: none !important;}
+#</style>
+#""", unsafe_allow_html=True)
 
 ## --- Hide Bottom Manage App Button Only ---
 #st.markdown("""
