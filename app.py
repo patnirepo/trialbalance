@@ -4,18 +4,20 @@ from supabase import create_client
 import streamlit.components.v1 as components
 
 st.set_page_config(page_title="Accounts", layout="wide")
-# --- Hide Bottom Manage App Button Only ---
-st.markdown("""
-<style>
-#MainMenu {visibility: hidden;}
-footer {visibility: hidden;}
-.stDeployButton {display:none !important;}
-[data-testid="stToolbar"] {display: none !important;}
-[data-testid="stManageAppButton"] {display: none !important;}
-[data-testid="stStatusWidget"] {display: none !important;}
-div[class*="viewerBadge"] {display: none !important;}
-</style>
-""", unsafe_allow_html=True)
+## --- Hide Bottom Manage App Button Only ---
+#st.markdown("""
+#<style>
+##MainMenu {visibility: hidden;}
+#footer {visibility: hidden;}
+#.stDeployButton {display:none !important;}
+#[data-testid="stToolbar"] {display: none !important;}
+#[data-testid="stManageAppButton"] {display: none !important;}
+#[data-testid="stStatusWidget"] {display: none !important;}
+#div[class*="viewerBadge"] {display: none !important;}
+#</style>
+#""", unsafe_allow_html=True)
+# ABOVE AND BELOW ARE DIFF FOR HIDE BUT SITE WILL WHITE 
+
 ## --- Hide Manage App, GitHub, Menu, Footer ---
 #hide_style = """
 #<style>
