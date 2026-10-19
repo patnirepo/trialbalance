@@ -184,21 +184,21 @@ with col2:
     if st.button("Print"):
         html = f"<html><body onload='window.print()'><h2>Trial Balance - {company_map[co]}</h2>{df_final.to_html(index=False)}</body></html>"
         components.html(html, height=700)
-    else: # Ledger
+else: # Ledger
         df_chart, _, _ = load_all(co)
         df_chart["label"] = df_chart["chartid"] + " - " + df_chart["chartname"].astype(str)
         acc_label = st.selectbox("Account Select karo", df_chart["label"].sort_values().tolist())
         acc_code = acc_label.split(" - ")[0]
 
-    ledger, opening, date_col = get_ledger(co, acc_code)
+        ledger, opening, date_col = get_ledger(co, acc_code)
 
     if ledger.empty and opening==0:
         st.warning("Is account me koi entry nahi")
         st.stop()
 
-    # Opening row
+        # Opening row
 
-    # ---------- Ledger Display Part - isko pura replace karo ----------
+        # ---------- Ledger Display Part - isko pura replace karo ----------
 
 
     rows = []
