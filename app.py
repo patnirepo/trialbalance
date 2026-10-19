@@ -164,8 +164,11 @@ if report_type == "Trial Balance":
         display_df[c] = pd.to_numeric(display_df[c], errors='coerce').fillna(0)
         display_df[c] = display_df[c].apply(lambda x: "" if x==0 else x)
 
-    st.dataframe(display_df, use_container_width=True, hide_index=True)
-    
+    st.dataframe(display_df, use_container_width=True, hide_index=True,
+        column_config={
+            "DEBIT": st.column_config.NumberColumn("DEBIT", format="%,.0f"),
+            "CREDIT": st.column_config.NumberColumn("CREDIT", format="%,.0f")
+        }) 
     c1, c2 = st.columns(2)
     with c1:
         st.download_button("Excel", display_df.to_csv(index=False).encode(), f"TB_{company_map[co]}.csv")
