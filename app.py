@@ -177,7 +177,7 @@ st.dataframe(
         "CREDIT": st.column_config.NumberColumn("CREDIT", width="small", format="%,.0f"),
     }
 )    
-    col1, col2 = st.columns(2)
+col1, col2 = st.columns(2)
     with col1:
         st.download_button("📥 Excel", df_final.to_csv(index=False).encode(), f"TB_{company_map[co]}.csv")
     with col2:
