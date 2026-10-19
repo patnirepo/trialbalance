@@ -156,17 +156,17 @@ if report_type == "Trial Balance":
     t_debit = df_show["NET_DEBIT"].sum()
     t_credit = df_show["NET_CREDIT"].sum()
 
-for g_type, g_df in df_show.groupby("DISPLAY_TYPE", sort=True):
+    for g_type, g_df in df_show.groupby("DISPLAY_TYPE", sort=True):
     g_df = g_df.sort_values("DISPLAY_NAME")
     for i, (_, row) in enumerate(g_df.iterrows()):
         final_list.append({"GROUP": g_type if i==0 else "", "ACCOUNT TITLE": row["DISPLAY_NAME"], "DEBIT": row['NET_DEBIT'] if row['NET_DEBIT'] else None, "CREDIT": row['NET_CREDIT'] if row['NET_CREDIT'] else None})
 
-final_list.append({"GROUP": "", "ACCOUNT TITLE": "GRAND TOTAL", "DEBIT": t_debit, "CREDIT": t_credit})
-df_final = pd.DataFrame(final_list)
-for col in ["DEBIT", "CREDIT"]:
+    final_list.append({"GROUP": "", "ACCOUNT TITLE": "GRAND TOTAL", "DEBIT": t_debit, "CREDIT": t_credit})
+    df_final = pd.DataFrame(final_list)
+    for col in ["DEBIT", "CREDIT"]:
     df_final[col] = pd.to_numeric(df_final[col], errors='coerce')
 
-st.dataframe(
+    st.dataframe(
     df_final,
     use_container_width=True,
     hide_index=True,
