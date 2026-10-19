@@ -150,129 +150,54 @@ if report_type == "Trial Balance":
     if df_trial.empty:
         st.info("Data nahi hai")
         st.stop()
-
     df_show = df_trial.sort_values(["DISPLAY_TYPE","DISPLAY_NAME"])
-    final_list = []
     t_debit = df_show["NET_DEBIT"].sum()
     t_credit = df_show["NET_CREDIT"].sum()
+    
+    # Simple display - pura Trial Balance
+    display_df = df_show[["DISPLAY_TYPE","DISPLAY_NAME","NET_DEBIT","NET_CREDIT"]].copy()
+    display_df.columns = ["GROUP","ACCOUNT TITLE","DEBIT","CREDIT"]
+    display_df.loc[len(display_df)] = ["", "GRAND TOTAL", t_debit, t_credit]
+    
+    # 0 ko khali dikhao, None nahi
+    for c in ["DEBIT","CREDIT"]:
+        display_df[c] = pd.to_numeric(display_df[c], errors='coerce').fillna(0)
+        display_df[c] = display_df[c].apply(lambda x: "" if x==0 else x)
 
-    for g_type, g_df in df_show.groupby("DISPLAY_TYPE", sort=True):
-        g_df = g_df.sort_values("DISPLAY_NAME")
-    for i, (_, row) in enumerate(g_df.iterrows()):
-        final_list.append({"GROUP": g_type if i==0 else "", "ACCOUNT TITLE": row["DISPLAY_NAME"], "DEBIT": row['NET_DEBIT'] if row['NET_DEBIT'] else None, "CREDIT": row['NET_CREDIT'] if row['NET_CREDIT'] else None})
+    st.dataframe(display_df, use_container_width=True, hide_index=True)
+    
+    c1, c2 = st.columns(2)
+    with c1:
+        st.download_button("Excel", display_df.to_csv(index=False).encode(), f"TB_{company_map[co]}.csv")
+    with c2:
+        if st.button("Print"):
+            html = f"<html><body onload='window.print()'><h2>Trial - {company_map[co]}</h2>{display_df.to_html(index=False)}</body></html>"
+            components.html(html, height=700)
 
-    final_list.append({"GROUP": "", "ACCOUNT TITLE": "GRAND TOTAL", "DEBIT": t_debit, "CREDIT": t_credit})
-    df_final = pd.DataFrame(final_list)
-    for col in ["DEBIT", "CREDIT"]:
-        df_final[col] = pd.to_numeric(df_final[col], errors='coerce')
-
-    st.dataframe(
-    df_final,
-    use_container_width=True,
-    hide_index=True,
-    column_config={
-        "GROUP": st.column_config.TextColumn("GROUP", width="small"),
-        "ACCOUNT TITLE": st.column_config.TextColumn("ACCOUNT TITLE", width="large"),
-        "DEBIT": st.column_config.NumberColumn("DEBIT", width="small", format="%,.0f"),
-        "CREDIT": st.column_config.NumberColumn("CREDIT", width="small", format="%,.0f"),
-    }
-)    
-col1, col2 = st.columns(2)
-with col1:
-    st.download_button("Excel", df_final.to_csv(index=False).encode(), f"TB_{company_map[co]}.csv")
-with col2:
-    if st.button("Print"):
-        html = f"<html><body onload='window.print()'><h2>Trial Balance - {company_map[co]}</h2>{df_final.to_html(index=False)}</body></html>"
-        components.html(html, height=700)
-else: # Ledger
-        df_chart, _, _ = load_all(co)
-        df_chart["label"] = df_chart["chartid"] + " - " + df_chart["chartname"].astype(str)
-        acc_label = st.selectbox("Account Select karo", df_chart["label"].sort_values().tolist())
-        acc_code = acc_label.split(" - ")[0]
-
-        ledger, opening, date_col = get_ledger(co, acc_code)
-
-    if ledger.empty and opening==0:
-        st.warning("Is account me koi entry nahi")
-        st.stop()
-
-        # Opening row
-
-        # ---------- Ledger Display Part - isko pura replace karo ----------
-
-
+else:
+    df_chart, _, _ = load_all(co)
+    df_chart["label"] = df_chart["chartid"] + " - " + df_chart["chartname"].astype(str)
+    acc_label = st.selectbox("Account Select karo", df_chart["label"].sort_values().tolist())
+    acc_code = acc_label.split(" - ")[0]
+    ledger, opening, date_col = get_ledger(co, acc_code)
+    
     rows = []
     bal = opening
-    # rows.append({"DATE": "Opening", "VNO": "", "PARTICULAR": "Opening Balance", "DEBIT": f"{opening:,.0f}" if opening>0 else "", "CREDIT": f"{abs(opening):,.0f}" if opening<0 else "", "BALANCE": f"{bal:,.0f}"})
-    rows.append({"DATE": "Opening", "VNO": "", "PARTICULAR": "Opening Balance", "DEBIT": 0, "CREDIT": 0, "BALANCE": opening})
+    rows.append({"DATE": "Opening", "VNO": "", "PARTICULAR": "Opening Balance", "DEBIT": "", "CREDIT": "", "BALANCE": opening})
     
     if date_col:
         ledger[date_col] = pd.to_datetime(ledger[date_col], errors='coerce')
         ledger = ledger.sort_values(by=date_col)
-
+    
     for _, r in ledger.iterrows():
         bal += r["DEBIT"] - r["CREDIT"]
-        opp_name = df_chart[df_chart["chartid"]==r["OPP"]]["chartname"].values
-        opp_name = opp_name[0] if len(opp_name)>0 else r["OPP"]
+        opp = df_chart[df_chart["chartid"]==r["OPP"]]["chartname"].values
+        opp = opp[0] if len(opp)>0 else r["OPP"]
         detail = str(r.get("detailg2","")).strip()
-        particular = f"{opp_name} - {detail}" if detail and detail.lower()!="nan" else opp_name
+        part = f"{opp} - {detail}" if detail and detail.lower()!="nan" else opp
         d = r[date_col].strftime("%d-%m-%Y") if date_col and pd.notna(r[date_col]) else ""
-        rows.append({
-                "DATE": d,
-                "VNO": f"{r.get('modeg', r.get('MODEG', ''))}-{r.get('vno', r.get('VNO', ''))}",
-                "PARTICULAR": particular,
-                "DEBIT": r['DEBIT'],
-                "CREDIT": r['CREDIT'],
-                "BALANCE": bal
-        })
-   
+        rows.append({"DATE": d, "VNO": f"{r.get('modeg','')}-{r.get('vnog2','')}", "PARTICULAR": part, "DEBIT": "" if r['DEBIT']==0 else r['DEBIT'], "CREDIT": "" if r['CREDIT']==0 else r['CREDIT'], "BALANCE": bal})
+    
     df_leg = pd.DataFrame(rows)
-    for col in ["DEBIT", "CREDIT", "BALANCE"]:
-        df_leg[col] = pd.to_numeric(df_leg[col], errors='coerce').fillna(0)
-
-    # 0 ko blank karne ke liye - DEBIT/CREDIT me 0 ko None banao
-    df_leg["DEBIT"] = df_leg["DEBIT"].apply(lambda x: None if x == 0 else x)
-    df_leg["CREDIT"] = df_leg["CREDIT"].apply(lambda x: None if x == 0 else x)
-
     st.subheader(f"Ledger: {acc_label} | Balance: {bal:,.0f}")
-    st.dataframe(
-        df_leg,
-        use_container_width=True,
-        hide_index=True,
-        column_config={
-            "DATE": st.column_config.TextColumn("DATE", width="small"),
-            "VNO": st.column_config.TextColumn("VNO", width="small"),
-            "PARTICULAR": st.column_config.TextColumn("PARTICULAR", width="large"),
-            "DEBIT": st.column_config.NumberColumn("DEBIT", width="small", format="%,.0f"),
-            "CREDIT": st.column_config.NumberColumn("CREDIT", width="small", format="%,.0f"),
-            "BALANCE": st.column_config.NumberColumn("BALANCE", width="small", format="%,.0f"),
-        }
-    )
-    
-    c1, c2 = st.columns(2)
-    with c1:
-        st.download_button("📥 Excel", df_leg.to_csv(index=False).encode(), f"Ledger_{acc_code}_{company_map[co]}.csv")
-    with c2:
-        if st.button("🖨️ Print Ledger"):
-            html = f"""
-            <html><head><style>
-            body{{font-family: Arial;}}
-            h3{{text-align:center}}
-            table{{width:100%; border-collapse:collapse; table-layout: fixed;}}
-            th{{background:#eee; padding:6px; font-size:13px; text-align:left}}
-            td{{padding:6px; border:1px solid #000; font-size:13px; word-wrap: break-word; white-space: normal;}}
-            td:nth-child(1){{width:90px}}
-            td:nth-child(2){{width:60px}}
-            td:nth-child(3){{width:45%}}
-            td:nth-child(4), td:nth-child(5), td:nth-child(6){{width:90px; text-align:right}}
-            </style></head>
-            <body onload='window.print()'>
-            <h3>Ledger - {acc_label} - {company_map[co]}</h3>
-            {df_leg.to_html(index=False)}
-            </body></html>
-            """
-            components.html(html, height=700, scrolling=True)
-    
-    
-    
- 
+    st.dataframe(df_leg, use_container_width=True, hide_index=True)
