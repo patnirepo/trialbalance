@@ -179,9 +179,9 @@ if report_type == "Trial Balance":
 )    
 col1, col2 = st.columns(2)
 with col1:
-    st.download_button("📥 Excel", df_final.to_csv(index=False).encode(), f"TB_{company_map[co]}.csv")
+    st.download_button("Excel", df_final.to_csv(index=False).encode(), f"TB_{company_map[co]}.csv")
 with col2:
-    if st.button("🖨️ Print"):
+    if st.button("Print"):
             html = f"<html><head><style>table{{width:100%; border-collapse:collapse}} td,th{{border:1px solid #000; padding:5px}}</style></head><body onload='window.print()'><h2 style='text-align:center'>Trial Balance - {company_map[co]}</h2>{df_final.to_html(index=False)}</body></html>"
             components.html(html, height=700)
 
