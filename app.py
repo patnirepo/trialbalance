@@ -154,36 +154,33 @@ if report_type == "Trial Balance":
     t_debit = df_show["NET_DEBIT"].sum()
     t_credit = df_show["NET_CREDIT"].sum()
     
-    # Simple display - pura Trial Balance
     display_df = df_show[["DISPLAY_TYPE","DISPLAY_NAME","NET_DEBIT","NET_CREDIT"]].copy()
     display_df.columns = ["GROUP","ACCOUNT TITLE","DEBIT","CREDIT"]
     display_df.loc[len(display_df)] = ["", "GRAND TOTAL", t_debit, t_credit]
-    
-    # 0 ko khali dikhao, None nahi
-    for c in ["DEBIT","CREDIT"]:
-        display_df[c] = pd.to_numeric(display_df[c], errors='coerce').fillna(0)
-        display_df[c] = display_df[c].apply(lambda x: float('nan') if x==0 else x)
 
-    # Format comma ke sath
-    for c in ["DEBIT","CREDIT"]:
-        display_df[c] = pd.to_numeric(display_df[c], errors='coerce').fillna(0)
-        display_df[c] = display_df[c].apply(lambda x: "" if x==0 else f"{x:,.0f}")
+    # --- 100% FIX - HTML Table Right Align ---
+    html_rows = ""
+    for _, r in display_df.iterrows():
+        d = "" if pd.isna(r["DEBIT"]) or float(r["DEBIT"])==0 else f"{float(r['DEBIT']):,.0f}"
+        c = "" if pd.isna(r["CREDIT"]) or float(r["CREDIT"])==0 else f"{float(r['CREDIT']):,.0f}"
+        is_total = "GRAND TOTAL" in str(r["ACCOUNT TITLE"])
+        style = "font-weight:bold; background:#f2f2f2;" if is_total else ""
+        html_rows += f"<tr style='{style}'><td style='border:1px solid #ddd; padding:6px;'>{r['GROUP']}</td><td style='border:1px solid #ddd; padding:6px;'>{r['ACCOUNT TITLE']}</td><td style='border:1px solid #ddd; padding:6px; text-align:right;'>{d}</td><td style='border:1px solid #ddd; padding:6px; text-align:right;'>{c}</td></tr>"
 
-    # Right align ka jadu
-    styler = display_df.style.set_properties(subset=["DEBIT","CREDIT"], **{'text-align': 'right'})
-    styler = styler.set_table_styles([{'selector': 'th', 'props': [('text-align', 'left')]},
-                                      {'selector': 'th.col3, th.col4', 'props': [('text-align', 'right')]}])
+    final_html = f"""
+    <table style='width:100%; border-collapse:collapse; font-family:Arial; font-size:14px;'>
+    <tr style='background:#e0e0e0;'><th style='border:1px solid #ccc; padding:8px; text-align:left;'>GROUP</th><th style='border:1px solid #ccc; padding:8px; text-align:left;'>ACCOUNT TITLE</th><th style='border:1px solid #ccc; padding:8px; text-align:right;'>DEBIT</th><th style='border:1px solid #ccc; padding:8px; text-align:right;'>CREDIT</th></tr>
+    {html_rows}
+    </table>
+    """
+    st.markdown(final_html, unsafe_allow_html=True)
 
-    st.dataframe(styler, use_container_width=True, hide_index=True)
-    
     c1, c2 = st.columns(2)
     with c1:
         st.download_button("Excel", display_df.to_csv(index=False).encode(), f"TB_{company_map[co]}.csv")
     with c2:
         if st.button("Print"):
-            html = f"<html><body onload='window.print()'><h2>Trial - {company_map[co]}</h2>{display_df.to_html(index=False)}</body></html>"
-            components.html(html, height=700)
-
+            components.html(f"<html><body onload='window.print()'>{final_html}</body></html>", height=700)
 else:
     df_chart, _, _ = load_all(co)
     df_chart["label"] = df_chart["chartid"] + " - " + df_chart["chartname"].astype(str)
