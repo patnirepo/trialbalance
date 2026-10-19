@@ -185,7 +185,7 @@ with col2:
             html = f"<html><head><style>table{{width:100%; border-collapse:collapse}} td,th{{border:1px solid #000; padding:5px}}</style></head><body onload='window.print()'><h2 style='text-align:center'>Trial Balance - {company_map[co]}</h2>{df_final.to_html(index=False)}</body></html>"
             components.html(html, height=700)
 
-else: # Ledger
+    else: # Ledger
     df_chart, _, _ = load_all(co)
     df_chart["label"] = df_chart["chartid"] + " - " + df_chart["chartname"].astype(str)
     acc_label = st.selectbox("Account Select karo", df_chart["label"].sort_values().tolist())
