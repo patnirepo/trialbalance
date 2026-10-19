@@ -152,7 +152,7 @@ if report_type == "Trial Balance":
         st.stop()
 
     df_show = df_trial.sort_values(["DISPLAY_TYPE","DISPLAY_NAME"])
-   final_list = []
+#   final_list = []
 t_debit = df_show["NET_DEBIT"].sum()
 t_credit = df_show["NET_CREDIT"].sum()
 
