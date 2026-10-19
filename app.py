@@ -5,6 +5,25 @@ import streamlit.components.v1 as components
 
 st.set_page_config(page_title="Accounts", layout="wide")
 
+#st.set_page_config(page_title="Accounts", layout="wide")
+
+# --- Hide Manage App, GitHub, Menu, Footer ---
+hide_style = """
+<style>
+#MainMenu {visibility: hidden;}
+footer {visibility: hidden;}
+header {visibility: hidden;}
+[data-testid="stToolbar"] {visibility: hidden !important;}
+[data-testid="stDecoration"] {visibility: hidden !important;}
+[data-testid="stStatusWidget"] {visibility: hidden !important;}
+div[data-testid="stManageAppButton"] {display: none !important;}
+a[href*="github"] {display: none !important;}
+.viewerBadge_container__r5tak {display: none !important;}
+</style>
+"""
+st.markdown(hide_style, unsafe_allow_html=True)
+#######################################
+
 # for numeric below 5 CSS lines set
 st.markdown("""
 <style>
