@@ -164,11 +164,17 @@ if report_type == "Trial Balance":
         display_df[c] = pd.to_numeric(display_df[c], errors='coerce').fillna(0)
         display_df[c] = display_df[c].apply(lambda x: float('nan') if x==0 else x)
 
-    # 0 ko blank string banao aur comma format
+    # Format comma ke sath
     for c in ["DEBIT","CREDIT"]:
-        display_df[c] = display_df[c].apply(lambda x: "" if pd.isna(x) or x==0 else f"{float(x):,.0f}")
+        display_df[c] = pd.to_numeric(display_df[c], errors='coerce').fillna(0)
+        display_df[c] = display_df[c].apply(lambda x: "" if x==0 else f"{x:,.0f}")
 
-    st.dataframe(display_df, use_container_width=True, hide_index=True)
+    # Right align ka jadu
+    styler = display_df.style.set_properties(subset=["DEBIT","CREDIT"], **{'text-align': 'right'})
+    styler = styler.set_table_styles([{'selector': 'th', 'props': [('text-align', 'left')]},
+                                      {'selector': 'th.col3, th.col4', 'props': [('text-align', 'right')]}])
+
+    st.dataframe(styler, use_container_width=True, hide_index=True)
     
     c1, c2 = st.columns(2)
     with c1:
