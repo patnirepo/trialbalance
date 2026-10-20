@@ -4,6 +4,7 @@ from supabase import create_client
 import streamlit.components.v1 as components
 
 st.set_page_config(page_title="Accounts", layout="wide")
+## --- Hide Manage App, GitHub, Menu, Footer ---
 st.markdown("""
 <style>
 #MainMenu {visibility: hidden;}
@@ -17,38 +18,6 @@ header {visibility: hidden; height: 0px;}
 .viewerBadge_container__r5tak, div[class*="viewerBadge"], div[class*="stAppDeployButton"] {display: none !important;}
 </style>
 """, unsafe_allow_html=True)
-
-
-## --- Hide Bottom Manage App Button Only ---
-#st.markdown("""
-#<style>
-##MainMenu {visibility: hidden;}
-#footer {visibility: hidden;}
-#.stDeployButton {display:none !important;}
-#[data-testid="stToolbar"] {display: none !important;}
-#[data-testid="stManageAppButton"] {display: none !important;}
-#[data-testid="stStatusWidget"] {display: none !important;}
-#div[class*="viewerBadge"] {display: none !important;}
-#</style>
-#""", unsafe_allow_html=True)
-# ABOVE AND BELOW ARE DIFF FOR HIDE BUT SITE WILL WHITE 
-
-## --- Hide Manage App, GitHub, Menu, Footer ---
-#hide_style = """
-#<style>
-##MainMenu {visibility: hidden;}
-#footer {visibility: hidden;}
-#header {visibility: hidden;}
-#[data-testid="stToolbar"] {visibility: hidden !important;}
-#[data-testid="stDecoration"] {visibility: hidden !important;}
-#[data-testid="stStatusWidget"] {visibility: hidden !important;}
-#div[data-testid="stManageAppButton"] {display: none !important;}
-#a[href*="github"] {display: none !important;}
-#.viewerBadge_container__r5tak {display: none !important;}
-#</style>
-#"""
-#st.markdown(hide_style, unsafe_allow_html=True)
-
 #######################################
 
 # for numeric below 5 CSS lines set
@@ -262,6 +231,16 @@ else:
         bal_str = f"{bal:,.0f}"
         rows.append({"DATE": d, "VNO": f"{r.get('modeg','')}-{r.get('vnog2','')}", "PARTICULAR": part, "DEBIT": debit_str, "CREDIT": credit_str, "BALANCE": bal_str})
 
+   
+    
+    html_rows = ""
+    for rr in rows:
+        is_total = rr['PARTICULAR'] == 'TOTAL'
+        bold = "font-weight:bold; background:#f2f2f2;" if is_total else ""
+        html_rows += f"<tr><td style='border:1px solid #ddd; padding:5px; {bold}'>{rr['DATE']}</td><td style='border:1px solid #ddd; padding:5px; {bold}'>{rr['VNO']}</td><td style='border:1px solid #ddd; padding:5px; {bold}'>{rr['PARTICULAR']}</td><td style='border:1px solid #ddd; padding:5px; text-align:right; {bold}'>{rr['DEBIT']}</td><td style='border:1px solid #ddd; padding:5px; text-align:right; {bold}'>{rr['CREDIT']}</td><td style='border:1px solid #ddd; padding:5px; text-align:right; {bold}'>{rr['BALANCE']}</td></tr>"
+    
+    
+    
     df_leg = pd.DataFrame(rows) # Excel ke liye
 
     html_rows = ""
