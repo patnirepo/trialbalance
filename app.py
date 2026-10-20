@@ -10,14 +10,10 @@ st.set_page_config(page_title="Iqbal Patni Accounts", layout="wide", initial_sid
 ## --- Hide Manage App, GitHub, Menu, Footer ---
 st.markdown("""
 <style>
-#MainMenu {visibility: hidden;}
 footer {visibility: hidden;}
-header {visibility: hidden; height: 0px;}
-.stDeployButton {display: none !important;}
 [data-testid="stToolbar"] {display: none !important;}
 [data-testid="stDecoration"] {display: none !important;}
 [data-testid="stStatusWidget"] {display: none !important;}
-[data-testid="stManageAppButton"] {display: none !important;}
 .viewerBadge_container__r5tak, div[class*="viewerBadge"], div[class*="stAppDeployButton"] {display: none !important;}
 </style>
 """, unsafe_allow_html=True)
