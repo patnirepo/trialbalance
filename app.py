@@ -46,13 +46,13 @@ def clean_code(x):
     except: return str(x).strip()
 
 # ---------- Sidebar ----------
-st.sidebar.title("Login")
-pwd = st.sidebar.text_input("Password", type="password")
+#st.sidebar.title("Login")
+#pwd = st.sidebar.text_input("Password", type="password")
 
 # Apna password yahan set karo
-if pwd!= "123":
-    st.sidebar.warning("123")
-    st.stop()
+#if pwd!= "123":
+#    st.sidebar.warning("123")
+#    st.stop()
 
 st.sidebar.divider()
 company_map = {1: "BOLTEN", 2: "CITY"}
