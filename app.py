@@ -225,28 +225,24 @@ else:
         if date_col and pd.notna(r.get(date_col)):
             try: d = pd.to_datetime(r[date_col]).strftime("%d-%m-%Y")
             except: d = str(r[date_col])
-    
         debit_str = "" if r.get("DEBIT",0)==0 else f"{float(r.get('DEBIT',0)):,.0f}"
         credit_str = "" if r.get("CREDIT",0)==0 else f"{float(r.get('CREDIT',0)):,.0f}"
         bal_str = f"{bal:,.0f}"
+    
         rows.append({"DATE": d, "VNO": f"{r.get('modeg','')}-{r.get('vnog2','')}", "PARTICULAR": part, "DEBIT": debit_str, "CREDIT": credit_str, "BALANCE": bal_str})
+    # --- YAHAN TOTAL LAGANA HAI - LOOP KE BAHAR ---
+    total_dr = ledger["DEBIT"].fillna(0).astype(float).sum() if not ledger.empty else 0
+    total_cr = ledger["CREDIT"].fillna(0).astype(float).sum() if not ledger.empty else 0
+    rows.append({"DATE": "", "VNO": "", "PARTICULAR": "TOTAL", "DEBIT": f"{total_dr:,.0f}", "CREDIT": f"{total_cr:,.0f}", "BALANCE": f"{bal:,.0f}"})
 
-   
-    
-    html_rows = ""
-    for rr in rows:
-        is_total = rr['PARTICULAR'] == 'TOTAL'
-        bold = "font-weight:bold; background:#f2f2f2;" if is_total else ""
-        html_rows += f"<tr><td style='border:1px solid #ddd; padding:5px; {bold}'>{rr['DATE']}</td><td style='border:1px solid #ddd; padding:5px; {bold}'>{rr['VNO']}</td><td style='border:1px solid #ddd; padding:5px; {bold}'>{rr['PARTICULAR']}</td><td style='border:1px solid #ddd; padding:5px; text-align:right; {bold}'>{rr['DEBIT']}</td><td style='border:1px solid #ddd; padding:5px; text-align:right; {bold}'>{rr['CREDIT']}</td><td style='border:1px solid #ddd; padding:5px; text-align:right; {bold}'>{rr['BALANCE']}</td></tr>"
-    
-    
-    
     df_leg = pd.DataFrame(rows) # Excel ke liye
 
-    html_rows = ""
-    for rr in rows:
-        html_rows += f"<tr><td style='border:1px solid #ddd; padding:5px;'>{rr['DATE']}</td><td style='border:1px solid #ddd; padding:5px;'>{rr['VNO']}</td><td style='border:1px solid #ddd; padding:5px;'>{rr['PARTICULAR']}</td><td style='border:1px solid #ddd; padding:5px; text-align:right;'>{rr['DEBIT']}</td><td style='border:1px solid #ddd; padding:5px; text-align:right;'>{rr['CREDIT']}</td><td style='border:1px solid #ddd; padding:5px; text-align:right;'>{rr['BALANCE']}</td></tr>"
-
+        html_rows = ""
+        for rr in rows:
+            is_total = rr['PARTICULAR'] == 'TOTAL'
+            bold = "font-weight:bold; background:#f2f2f2;" if is_total else ""
+            html_rows += f"<tr><td style='border:1px solid #ddd; padding:5px; {bold}'>{rr['DATE']}</td><td style='border:1px solid #ddd; padding:5px; {bold}'>{rr['VNO']}</td><td style='border:1px solid #ddd; padding:5px; {bold}'>{rr['PARTICULAR']}</td><td style='border:1px solid #ddd; padding:5px; text-align:right; {bold}'>{rr['DEBIT']}</td><td style='border:1px solid #ddd; padding:5px; text-align:right; {bold}'>{rr['CREDIT']}</td><td style='border:1px solid #ddd; padding:5px; text-align:right; {bold}'>{rr['BALANCE']}</td></tr>"
+    
     final_html = f"""
     <table style='width:100%; border-collapse:collapse; font-family:Arial; font-size:13px;'>
     <tr style='background:#e0e0e0;'><th style='border:1px solid #ccc; padding:6px;'>DATE</th><th style='border:1px solid #ccc; padding:6px;'>VNO</th><th style='border:1px solid #ccc; padding:6px;'>PARTICULAR</th><th style='border:1px solid #ccc; padding:6px; text-align:right;'>DEBIT</th><th style='border:1px solid #ccc; padding:6px; text-align:right;'>CREDIT</th><th style='border:1px solid #ccc; padding:6px; text-align:right;'>BALANCE</th></tr>
