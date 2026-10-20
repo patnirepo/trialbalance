@@ -3,7 +3,10 @@ import pandas as pd
 from supabase import create_client
 import streamlit.components.v1 as components
 
-st.set_page_config(page_title="Accounts", layout="wide")
+#import streamlit as st
+st.set_page_config(page_title="Iqbal Patni Accounts", layout="wide", initial_sidebar_state="expanded")
+
+#st.set_page_config(page_title="Accounts", layout="wide")
 ## --- Hide Manage App, GitHub, Menu, Footer ---
 st.markdown("""
 <style>
