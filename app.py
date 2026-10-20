@@ -52,8 +52,8 @@ pwd = st.sidebar.text_input("Password", type="password")
 
 # Apna password yahan set karo
 if pwd!= "123":
-    #st.sidebar.warning("Enter your Password ")
-    #st.stop()
+    st.sidebar.warning("Enter your Password ")
+    st.stop()
 
 st.sidebar.divider()
 company_map = {1: "BOLTEN", 2: "CITY"}
