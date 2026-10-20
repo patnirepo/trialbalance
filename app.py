@@ -236,7 +236,7 @@ else:
     rows.append({"DATE": "", "VNO": "", "PARTICULAR": "TOTAL", "DEBIT": f"{total_dr:,.0f}", "CREDIT": f"{total_cr:,.0f}", "BALANCE": f"{bal:,.0f}"})
 
     df_leg = pd.DataFrame(rows) # Excel ke liye
-
+ 
         html_rows = ""
         for rr in rows:
             is_total = rr['PARTICULAR'] == 'TOTAL'
