@@ -52,7 +52,7 @@ pwd = st.sidebar.text_input("Password", type="password")
 
 # Apna password yahan set karo
 if pwd!= "123":
-    st.sidebar.warning("Enter your Password ")
+    st.sidebar.warning("123")
     st.stop()
 
 st.sidebar.divider()
