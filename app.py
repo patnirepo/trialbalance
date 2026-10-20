@@ -237,11 +237,11 @@ else:
 
     df_leg = pd.DataFrame(rows) # Excel ke liye
  
-        html_rows = ""
-        for rr in rows:
-            is_total = rr['PARTICULAR'] == 'TOTAL'
-            bold = "font-weight:bold; background:#f2f2f2;" if is_total else ""
-            html_rows += f"<tr><td style='border:1px solid #ddd; padding:5px; {bold}'>{rr['DATE']}</td><td style='border:1px solid #ddd; padding:5px; {bold}'>{rr['VNO']}</td><td style='border:1px solid #ddd; padding:5px; {bold}'>{rr['PARTICULAR']}</td><td style='border:1px solid #ddd; padding:5px; text-align:right; {bold}'>{rr['DEBIT']}</td><td style='border:1px solid #ddd; padding:5px; text-align:right; {bold}'>{rr['CREDIT']}</td><td style='border:1px solid #ddd; padding:5px; text-align:right; {bold}'>{rr['BALANCE']}</td></tr>"
+    html_rows = ""
+    for rr in rows:
+        is_total = rr['PARTICULAR'] == 'TOTAL'
+        bold = "font-weight:bold; background:#f2f2f2;" if is_total else ""
+        html_rows += f"<tr><td style='border:1px solid #ddd; padding:5px; {bold}'>{rr['DATE']}</td><td style='border:1px solid #ddd; padding:5px; {bold}'>{rr['VNO']}</td><td style='border:1px solid #ddd; padding:5px; {bold}'>{rr['PARTICULAR']}</td><td style='border:1px solid #ddd; padding:5px; text-align:right; {bold}'>{rr['DEBIT']}</td><td style='border:1px solid #ddd; padding:5px; text-align:right; {bold}'>{rr['CREDIT']}</td><td style='border:1px solid #ddd; padding:5px; text-align:right; {bold}'>{rr['BALANCE']}</td></tr>"
     
     final_html = f"""
     <table style='width:100%; border-collapse:collapse; font-family:Arial; font-size:13px;'>
