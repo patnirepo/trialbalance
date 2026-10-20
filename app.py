@@ -6,17 +6,18 @@ import streamlit.components.v1 as components
 st.set_page_config(page_title="Accounts", layout="wide")
 st.markdown("""
 <style>
-.stDeployButton, [data-testid="stManageAppButton"] {display: none !important;}
 #MainMenu {visibility: hidden;}
 footer {visibility: hidden;}
+header {visibility: hidden; height: 0px;}
+.stDeployButton {display: none !important;}
+[data-testid="stToolbar"] {display: none !important;}
+[data-testid="stDecoration"] {display: none !important;}
+[data-testid="stStatusWidget"] {display: none !important;}
+[data-testid="stManageAppButton"] {display: none !important;}
+.viewerBadge_container__r5tak, div[class*="viewerBadge"], div[class*="stAppDeployButton"] {display: none !important;}
 </style>
 """, unsafe_allow_html=True)
 
-#st.markdown("""
-#<style>
-#.stDeployButton, [data-testid="stManageAppButton"] {display: none !important;}
-#</style>
-#""", unsafe_allow_html=True)
 
 ## --- Hide Bottom Manage App Button Only ---
 #st.markdown("""
