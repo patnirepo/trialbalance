@@ -3,7 +3,7 @@ import pandas as pd
 from supabase import create_client
 import streamlit.components.v1 as components
 
-st.set_page_config(page_title="The Accounts", layout="wide")
+st.set_page_config(page_title="Accounts", layout="wide")
 ## --- Hide Manage App, GitHub, Menu, Footer ---
 st.markdown("""
 <style>
@@ -46,7 +46,6 @@ def clean_code(x):
     except: return str(x).strip()
 
 # ---------- Sidebar ----------
-st.sidebar.title("Mohammad Iqbal Patni")
 st.sidebar.title("Login")
 pwd = st.sidebar.text_input("Password", type="password")
 
