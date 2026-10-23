@@ -26,16 +26,28 @@ st.set_page_config(page_title="Iqbal Patni Accounts", layout="wide", initial_sid
 #</style>
 #""", unsafe_allow_html=True)
 
+#st.markdown("""
+#<style>
+#footer {visibility: hidden;}
+#[data-testid="stDecoration"] {display: none !important;}
+#[data-testid="stStatusWidget"] {display: none !important;}
+#.viewerBadge_container__r5tak, div[class*="viewerBadge"] {display: none !important;}
+
+#/* Fork, GitHub, Star wale buttons hide karo, lekin >> << ko rehne do */
+#[data-testid="stToolbarActions"] {display: none !important;}
+#[data-testid="stAppDeployButton"] {display: none !important;}
+#</style>
+#""", unsafe_allow_html=True)
+
+
 st.markdown("""
 <style>
 footer {visibility: hidden;}
 [data-testid="stDecoration"] {display: none !important;}
 [data-testid="stStatusWidget"] {display: none !important;}
-.viewerBadge_container__r5tak, div[class*="viewerBadge"] {display: none !important;}
-
-/* Fork, GitHub, Star wale buttons hide karo, lekin >> << ko rehne do */
+[data-testid="stBottom"] {display: none !important;}
+.viewerBadge_container__r5tak, div[class*="viewerBadge"], div[class*="stAppDeployButton"] {display: none !important;}
 [data-testid="stToolbarActions"] {display: none !important;}
-[data-testid="stAppDeployButton"] {display: none !important;}
 </style>
 """, unsafe_allow_html=True)
 
