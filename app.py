@@ -95,6 +95,9 @@ def clean_code(x):
     except: return str(x).strip()
 
 # ---------- Sidebar ----------
+st.sidebar.title("Mohammad Iqbal Patni")
+st.sidebar.divider()
+
 st.sidebar.title("Login")
 
 pwd = st.sidebar.text_input("Password", type="password")
